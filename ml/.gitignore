@@ -1,0 +1,8 @@
+raw/
+processed/
+runs/
+export/
+work/
+chroma/
+*approval.json
+*reviewed.jsonl

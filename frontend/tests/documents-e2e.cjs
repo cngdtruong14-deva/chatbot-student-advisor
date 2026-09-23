@@ -1,0 +1,38 @@
+/* Existing local DEMO stack. Reuses an in-memory admin token; never prints credentials. */
+const {createRequire}=require('node:module');
+const {execFileSync}=require('node:child_process');
+const path=require('node:path');
+const [repo,moduleDir]=process.argv.slice(2);
+const {chromium}=createRequire(path.join(moduleDir,'package.json'))('playwright');
+const command=(args)=>execFileSync('docker',['compose','exec','-T','api',...args],{cwd:repo,encoding:'utf8',stdio:['pipe','pipe','pipe']});
+const auth=JSON.parse(command(['python','-c',"import json; from app.store import transaction,one; from app.security import access_token;\nwith transaction() as db: u=one(db,\"SELECT id,email,role FROM app.users WHERE role='admin' AND is_active ORDER BY created_at LIMIT 1\"); print(json.dumps({'access_token':access_token(u['id']),'user':u},default=str))"]));
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/api/v1/auth/refresh',route=>route.fulfill({json:{data:auth}}));
+ await page.goto('http://localhost:3000');
+ await page.getByRole('button',{name:'Quản lý tài liệu'}).click();
+ await page.getByLabel('Tiêu đề',{exact:true}).fill('DEMO — Hướng dẫn kho tài liệu');
+ await page.getByLabel('Nguồn',{exact:true}).fill('demo:huong-dan-kho-tai-lieu');
+ await page.getByLabel('Hiệu lực từ',{exact:true}).fill('2026-09-06');
+ await page.getByLabel('Nội dung / xem trước',{exact:true}).fill('DEMO-KHO-01: Để nạp văn bản mẫu, quản trị viên mở Quản lý tài liệu, nhập tiêu đề và nguồn, dán nội dung hoặc chọn TXT/MD rồi lưu bản nháp. Tài liệu cần được xử lý và công bố trước khi có thể truy xuất. Đây là hướng dẫn mô phỏng cho dự án.');
+ const saved=page.waitForResponse(r=>r.url().endsWith('/admin/documents') && r.request().method()==='POST');
+ await page.getByRole('button',{name:'Lưu bản nháp'}).click();
+ const response=await saved;if(!response.ok())throw Error('Document save failed');const item=(await response.json()).data;
+ command(['python','-m','app.knowledge','ingest','--version-id',item.id]);
+ command(['python','-m','app.knowledge','activate','--version-id',item.id]);
+ await page.getByRole('button',{name:'Cập nhật trạng thái'}).click();
+ await page.getByRole('button',{name:'Trợ lý học tập'}).click();
+ await page.getByLabel('Tin nhắn',{exact:true}).fill('Tôi nạp văn bản mẫu vào kho tài liệu bằng cách nào?');
+ await page.getByRole('button',{name:'Gửi'}).click();
+ const citation=page.locator('summary').filter({hasText:'DEMO — Hướng dẫn kho tài liệu'});
+ await citation.first().waitFor({timeout:60000});await citation.first().click();
+ await page.getByText('DEMO-KHO-01:',{exact:false}).first().waitFor();
+ await page.getByRole('button',{name:'Kết nối nghiên cứu'}).click();
+ await page.getByRole('button',{name:'Dự đoán',exact:true}).first().click();
+ await page.getByRole('heading',{name:/Nguy cơ:/}).waitFor();
+ await page.getByRole('button',{name:'Xem giải thích'}).click();
+ await page.getByText('num_of_prev_attempts:',{exact:false}).waitFor();
+ if(errors.length)throw Error(errors.join('\n'));
+ console.log('PASS: admin document input -> PostgreSQL -> CLI ingestion/activation -> dense chat retrieval -> citation; OULAD prediction + persisted explanation; no browser errors.');
+}finally{await browser.close();}})().catch(e=>{console.error(e.message);process.exitCode=1;});

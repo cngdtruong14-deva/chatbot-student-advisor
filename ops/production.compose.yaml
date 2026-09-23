@@ -1,0 +1,154 @@
+name: ${COMPOSE_PROJECT_NAME:?Set a production project name}
+services:
+  db:
+    image: ${POSTGRES_IMAGE:?Pin PostgreSQL to an approved digest}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: student_advisor
+      POSTGRES_USER: advisor_admin
+      POSTGRES_PASSWORD: ${ADMIN_DB_PASSWORD:?Required}
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?Required}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/010-roles.sh:/docker-entrypoint-initdb.d/010-roles.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U advisor_admin -d student_advisor"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+    networks: [database]
+    security_opt: [no-new-privileges:true]
+    logging: &logging
+      driver: json-file
+      options: {max-size: 10m, max-file: "5"}
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+
+  migrate:
+    image: ${API_IMAGE:?Required}@${API_IMAGE_DIGEST:?Pin API digest}
+    command: [alembic, upgrade, head]
+    environment:
+      DB_HOST: db
+      DB_NAME: student_advisor
+      DB_USER: advisor_migrator
+      DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?Required}
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [database]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    logging: *logging
+
+  api:
+    image: ${API_IMAGE:?Required}@${API_IMAGE_DIGEST:?Pin API digest}
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --proxy-headers
+      - --forwarded-allow-ips
+      - ${TRUSTED_PROXY_IPS:?Set exact reverse proxy IPs}
+    restart: unless-stopped
+    environment: &api_environment
+      APP_ENV: production
+      DB_HOST: db
+      DB_NAME: student_advisor
+      DB_USER: advisor_app
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Required}
+      JWT_SECRET: ${JWT_SECRET:?Required}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Required}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:?Required}
+      WEB_PROXY_IP: ${WEB_PROXY_IP:?Required}
+      MODEL_DIRECTORY: /artifacts/approved
+      RAG_DIRECTORY: /vectorstore
+      HF_HOME: /vectorstore/hf
+      HF_HUB_OFFLINE: "1"
+      RAG_METHOD: ${RAG_METHOD:-keyword}
+      RAG_LLM_ENABLED: ${RAG_LLM_ENABLED:-0}
+      RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-gemini-3.1-flash-lite}
+      RAG_LLM_TIMEOUT_SECONDS: ${RAG_LLM_TIMEOUT_SECONDS:-20}
+      RAG_LLM_PROMPT_VERSION: ${RAG_LLM_PROMPT_VERSION:?Required}
+      RAG_RUNTIME_APPROVAL_PATH: ${RAG_RUNTIME_APPROVAL_PATH:?Required}
+      RAG_HIGH_STAKES_APPROVAL_PATH: ${RAG_HIGH_STAKES_APPROVAL_PATH:?Required}
+      RAG_RELEASE_RECEIPT_PATH: ${RAG_RELEASE_RECEIPT_PATH:?Required}
+    volumes:
+      - ${ARTIFACTS_PATH:?Required}:/artifacts:ro
+      - vectorstore:/vectorstore
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    depends_on:
+      db: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      edge:
+        ipv4_address: ${API_INTERNAL_IP:?Set a fixed internal API address}
+      database: {}
+    logging: *logging
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 512
+
+  web:
+    image: ${WEB_IMAGE:?Required}@${WEB_IMAGE_DIGEST:?Pin web digest}
+    restart: unless-stopped
+    ports: ["${WEB_BIND:-127.0.0.1:8080}:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/health/ready]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks:
+      edge:
+        ipv4_address: ${WEB_PROXY_IP:?Set a fixed internal web proxy address}
+    logging: *logging
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+
+  retention-dry-run:
+    profiles: [maintenance]
+    image: ${API_IMAGE:?Required}@${API_IMAGE_DIGEST:?Pin API digest}
+    command: [python, -m, app.purge_chat_retention, --dry-run]
+    environment: *api_environment
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    networks: [database]
+    depends_on:
+      db: {condition: service_healthy}
+    logging: *logging
+
+volumes:
+  postgres_data:
+  vectorstore:
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: ${EDGE_SUBNET:?Set an isolated edge subnet}
+  database:
+    internal: true

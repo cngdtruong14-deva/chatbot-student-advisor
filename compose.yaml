@@ -1,0 +1,103 @@
+name: ${COMPOSE_PROJECT_NAME:-sic-student-advisor}
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: student_advisor
+      POSTGRES_USER: advisor_admin
+      POSTGRES_PASSWORD: ${ADMIN_DB_PASSWORD:?Run Initialize-Local.ps1}
+      MIGRATOR_DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?Run Initialize-Local.ps1}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Run Initialize-Local.ps1}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./ops/postgres/010-roles.sh:/docker-entrypoint-initdb.d/010-roles.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U advisor_admin -d student_advisor']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [database]
+  migrate:
+    image: sic-student-advisor-api:${API_IMAGE_TAG:-foundation}
+    command: [alembic, upgrade, head]
+    environment:
+      DB_HOST: db
+      DB_NAME: student_advisor
+      DB_USER: advisor_migrator
+      DB_PASSWORD: ${MIGRATOR_DB_PASSWORD:?Run Initialize-Local.ps1}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [database]
+    security_opt: [no-new-privileges:true]
+  api:
+    image: sic-student-advisor-api:${API_IMAGE_TAG:-foundation}
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: student_advisor
+      DB_USER: advisor_app
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Run Initialize-Local.ps1}
+      MODEL_DIRECTORY: /artifacts/approved
+      RAG_DIRECTORY: /vectorstore
+      RAG_METHOD: ${RAG_METHOD:-keyword}
+      HF_HOME: /vectorstore/hf
+      HF_HUB_OFFLINE: '1'
+      JWT_SECRET: ${JWT_SECRET:-}
+      RAG_LLM_BASE_URL: ${RAG_LLM_BASE_URL:-}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
+      RAG_LLM_API_KEY: ${RAG_LLM_API_KEY:-}
+      RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      RAG_LLM_TIMEOUT_SECONDS: ${RAG_LLM_TIMEOUT_SECONDS:-20}
+      RAG_LLM_ENABLED: ${RAG_LLM_ENABLED:-0}
+      RAG_LLM_PROMPT_VERSION: ${RAG_LLM_PROMPT_VERSION:-decision_tree_stage7/1}
+      RAG_RUNTIME_APPROVAL_PATH: ${RAG_RUNTIME_APPROVAL_PATH:-/artifacts/stage7/benchmark_v4/rag_runtime_approval_capstone_v4.signed.json}
+      RAG_HIGH_STAKES_APPROVAL_PATH: ${RAG_HIGH_STAKES_APPROVAL_PATH:-/artifacts/stage7/benchmark_v4/rag_high_stakes_grounded_capstone_v4.signed.json}
+      RAG_RELEASE_RECEIPT_PATH: ${RAG_RELEASE_RECEIPT_PATH:-/artifacts/stage7/effectivity/release_receipt.current.json}
+    ports: ['127.0.0.1:${API_PORT:-8000}:8000']
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - ./vectorstore:/vectorstore
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [edge, database]
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports: ['127.0.0.1:${WEB_PORT:-3000}:8080']
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [edge]
+volumes:
+  postgres_data:
+networks:
+  edge:
+  database:
+    internal: true

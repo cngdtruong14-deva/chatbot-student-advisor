@@ -1,0 +1,13 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"urn:student-advisor:contracts:academic-demo-v2-risk-day28:1.0.0",
+  "title":"Synthetic Academic Demo v2 day-28 risk record",
+  "type":"object","additionalProperties":false,
+  "required":["case_id","domain_id","data_origin","feature_schema_id","feature_schema_version","cutoff_day","source_completeness","features"],
+  "properties":{
+    "case_id":{"type":"string","minLength":1},"domain_id":{"const":"academic_demo_v2"},"data_origin":{"const":"synthetic"},
+    "feature_schema_id":{"const":"academic_demo_v2_risk_day28"},"feature_schema_version":{"const":"1.0.0"},"cutoff_day":{"const":28},
+    "source_completeness":{"type":"object","additionalProperties":false,"required":["event_generator_verified","transcript_label_verified"],"properties":{"event_generator_verified":{"const":true},"transcript_label_verified":{"const":true}}},
+    "features":{"type":"object","additionalProperties":false,"required":["prior_gpa_4","prior_attempts","attendance_rate_0_28","missed_sessions_0_28","submission_rate_0_28","published_assessment_mean_0_28","lms_active_days_0_28"],"properties":{"prior_gpa_4":{"type":["number","null"],"minimum":0,"maximum":4},"prior_attempts":{"type":"integer","minimum":0},"attendance_rate_0_28":{"type":"number","minimum":0,"maximum":1},"missed_sessions_0_28":{"type":"integer","minimum":0},"submission_rate_0_28":{"type":"number","minimum":0,"maximum":1},"published_assessment_mean_0_28":{"type":["number","null"],"minimum":0,"maximum":10},"lms_active_days_0_28":{"type":"integer","minimum":0,"maximum":29}}}
+  }
+}

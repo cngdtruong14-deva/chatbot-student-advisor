@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "utt_corpus_manifest_v2.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest_version", "status", "owner", "reviewed_at", "documents", "manifest_sha256"],
+  "properties": {
+    "manifest_version": {"const": "2.0.0"},
+    "status": {"const": "owner_reviewed"},
+    "owner": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "documents": {
+      "type": "array", "minItems": 44, "maxItems": 44,
+      "items": {
+        "type": "object",
+        "required": ["source_id", "filename", "title", "source", "major", "cohort", "raw_sha256", "text_sha256", "review_state", "reviewer", "title_verified", "source_verified", "page_coverage_verified", "table_coverage_verified", "is_effective_date_verified"],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1}, "filename": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1}, "source": {"type": "string", "minLength": 1},
+          "major": {"type": "string", "minLength": 1}, "cohort": {"type": "string", "minLength": 1},
+          "raw_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "text_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "review_state": {"const": "reviewed"}, "reviewer": {"type": "string", "minLength": 1},
+          "title_verified": {"const": true}, "source_verified": {"const": true},
+          "page_coverage_verified": {"const": true}, "table_coverage_verified": {"const": true},
+          "is_effective_date_verified": {"type": "boolean"}, "effective_from": {"type": ["string", "null"], "format": "date"},
+          "effective_until": {"type": ["string", "null"], "format": "date"}
+        }
+      }
+    }
+  }
+}

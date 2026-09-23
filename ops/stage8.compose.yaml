@@ -1,0 +1,85 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: student_advisor
+      POSTGRES_USER: advisor_admin
+      POSTGRES_PASSWORD: ${STAGE8_ADMIN_PASSWORD:?required}
+      MIGRATOR_DB_PASSWORD: ${STAGE8_MIGRATOR_PASSWORD:?required}
+      APP_DB_PASSWORD: ${STAGE8_APP_PASSWORD:?required}
+    volumes:
+      - stage8_postgres:/var/lib/postgresql/data
+      - ./postgres/010-roles.sh:/docker-entrypoint-initdb.d/010-roles.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U advisor_admin -d student_advisor]
+      interval: 2s
+      timeout: 2s
+      retries: 40
+    networks: [database]
+
+  migrate:
+    image: ${STAGE8_API_IMAGE:?required}
+    command: [alembic, upgrade, head]
+    environment:
+      DB_HOST: db
+      DB_NAME: student_advisor
+      DB_USER: advisor_migrator
+      DB_PASSWORD: ${STAGE8_MIGRATOR_PASSWORD:?required}
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [database]
+    security_opt: [no-new-privileges:true]
+
+  api:
+    image: ${STAGE8_API_IMAGE:?required}
+    environment:
+      DB_HOST: db
+      DB_NAME: student_advisor
+      DB_USER: advisor_app
+      DB_PASSWORD: ${STAGE8_APP_PASSWORD:?required}
+      JWT_SECRET: ${STAGE8_JWT_SECRET:?required}
+      APP_ENV: test
+      ADVISOR_TEST_DATABASE: '1'
+      ADVISOR_DOCUMENT_DB_TEST: '1'
+      RAG_METHOD: keyword
+      RAG_LLM_ENABLED: '0'
+      MODEL_DIRECTORY: /tmp/models
+      RAG_DIRECTORY: /tmp/vectorstore
+      HF_HOME: /tmp/hf
+      HF_HUB_OFFLINE: '1'
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      db: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [database, edge]
+
+  web:
+    image: ${STAGE8_WEB_IMAGE:?required}
+    ports: ['127.0.0.1:${STAGE8_WEB_PORT:?required}:8080']
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -qO-, http://127.0.0.1:8080/]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    networks: [edge]
+
+volumes:
+  stage8_postgres:
+
+networks:
+  database: {internal: true}
+  edge: {}

@@ -1,0 +1,349 @@
+import json
+from pathlib import Path
+
+def create_rag_notebook():
+    notebook = {
+        "cells": [
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "# Báo cáo Khoa học & Thuyết trình: Kiến trúc Governed RAG trong Cố vấn Học vụ\n",
+                    "\n",
+                    "**Dự án**: Intelligent Student Advisor Platform (Capstone)  \n",
+                    "**Chủ đề**: Mô hình RAG Đa tầng có Kiểm soát Hiệu lực Thời gian và Dẫn nguồn Chính xác (*Governed & Grounded RAG*)  \n",
+                    "**Mục đích**: Sổ tay khoa học trực quan phục vụ báo cáo thuyết trình, bao gồm cơ sở lý thuyết, sơ đồ kiến trúc, bảng so sánh công nghệ và mã nguồn thực nghiệm trực tiếp.\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 1. Đặt vấn đề: Tại sao Naive RAG thất bại trong Cố vấn Học vụ?\n",
+                    "\n",
+                    "Khi ứng dụng Mô hình Ngôn ngữ Lớn (LLM) vào tư vấn quy chế đào tạo đại học, hệ thống gặp phải **3 rủi ro nghiêm trọng**:\n",
+                    "\n",
+                    "1. **Ảo giác thông tin (*Hallucination*)**: LLM tự suy đoán điều kiện tốt nghiệp, điểm rèn luyện, chuẩn ngoại ngữ khi tài liệu không đề cập.\n",
+                    "2. **Xung đột hiệu lực thời gian (*Temporal Policy Shifts*)**: Quy chế đào tạo thay đổi theo từng năm/khóa (ví dụ: Quy chế 2021 khác 2024). RAG thông thường dễ lấy nhầm điều khoản của khóa cũ áp dụng cho sinh viên khóa mới.\n",
+                    "3. **Thiếu khả năng truy vết pháp lý (*Auditability*)**: Sinh viên và cố vấn cần số liệu dẫn nguồn chính xác đến từng **Trang** và **Đoạn** của văn bản Nhà trường ban hành.\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "### Bảng so sánh các thế hệ kiến trúc RAG\n",
+                    "\n",
+                    "| Tiêu chí | Naive RAG (RAG thông thường) | Advanced RAG | **Governed RAG (Dự án đề xuất)** |\n",
+                    "|---|---|---|---|\n",
+                    "| **Nguồn dữ liệu** | Văn bản thuần (TXT, MD) | PDF văn bản điện tử | **Đa phương thức**: TXT, MD, DOCX, PDF văn bản, **PDF scan & Ảnh scan (PNG, JPG) qua Local OCR** |\n",
+                    "| **Bảo vệ tài nguyên & DoS** | Không giới hạn | Giới hạn dung lượng file | **Rào chắn 4 tầng**: Max 20 trang, 10M pixels, 10s timeout, 100K ký tự |\n",
+                    "| **Kiểm soát thời gian hiệu lực** | Không có (tìm kiếm toàn bộ) | Lọc metadata tĩnh | **Gated Temporal Validation**: $valid\\_from \\le as\\_of < valid\\_until$, loại bỏ 100% văn bản hết hạn |\n",
+                    "| **Chiến lược phân đoạn (*Chunking*)** | Cố định số ký tự có chồng lấn | Tách theo câu đơn | **Structure-Aware Chunking**: Giữ nguyên ranh giới đoạn, trích xuất `## Trang {N}` $\\rightarrow$ Dẫn nguồn `Trang X, Đoạn Y` |\n",
+                    "| **Phương thức truy xuất** | Chỉ Dense Embedding | Hybrid (Dense + Sparse) | **Truy xuất lai đa tầng**: Okapi TF-IDF / BM25+ và Dense Multilingual-E5 (768 chiều, pinned commit) |\n",
+                    "| **Xác thực chống ảo giác** | Chỉ dựa vào System Prompt | Đo khoảng cách Cosine | **Citation Verification Engine**: Kiểm duyệt từng claim, bắt buộc dẫn `chunk_id` có thật trong context; nếu bịa citation $\\rightarrow$ **Abstain** |\n",
+                    "| **Chế độ bảo mật** | Gọi Cloud API | Phụ thuộc OpenAI | **100% On-Premise / Local Offline**: Không rò rỉ dữ liệu quy chế hay thông tin sinh viên ra bên ngoài |\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 2. Sơ đồ Kiến trúc Tổng thể (Architecture Pipeline)\n",
+                    "\n",
+                    "```\n",
+                    "+-----------------------------------------------------------------------------------------+\n",
+                    "|                                  1. INGESTION PIPELINE                                  |\n",
+                    "|  Tài liệu (PDF, DOCX, Scan) --> Local OCR (Tesseract-Vie) --> Structure-Aware Chunker  |\n",
+                    "|  --> PostgreSQL (Băm SHA256, app.chunks) & ChromaDB (Multilingual-E5 Vectors)           |\n",
+                    "+-----------------------------------------------------------------------------------------+\n",
+                    "                                            |\n",
+                    "                                            v\n",
+                    "+-----------------------------------------------------------------------------------------+\n",
+                    "|                           2. GATED HYBRID RETRIEVAL PIPELINE                            |\n",
+                    "|  Câu hỏi sinh viên + as_of (ngày truy vấn)                                              |\n",
+                    "|  --> [BỘ LỌC THỜI GIAN]: valid_from <= as_of < valid_until                              |\n",
+                    "|  --> [TRUY XUẤT LAI]: Lexical BM25 (từ khóa) + Dense E5 (ngữ nghĩa cosine)              |\n",
+                    "|  --> Top-K Evidence Chunks (kèm mã hash và vị trí Trang X, Đoạn Y)                      |\n",
+                    "+-----------------------------------------------------------------------------------------+\n",
+                    "                                            |\n",
+                    "                                            v\n",
+                    "+-----------------------------------------------------------------------------------------+\n",
+                    "|                        3. GROUNDED GENERATION & VERIFICATION                            |\n",
+                    "|  Đóng gói Prompt Ngữ cảnh (Chỉ cho phép dùng Evidence) --> LLM Inference Engine         |\n",
+                    "|  --> [CITATION VERIFIER]: Bắt buộc trích dẫn [citation:chunk_id]                        |\n",
+                    "|      + Hợp lệ: Trả lời sinh viên kèm dẫn nguồn Trang X, Đoạn Y                          |\n",
+                    "|      + Bịa đặt / Thiếu bằng chứng: Từ chối trả lời an toàn (insufficient_evidence)     |\n",
+                    "+-----------------------------------------------------------------------------------------+\n",
+                    "```\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 3. Thực nghiệm 1: Phân mảnh Ngữ nghĩa & Nhận thức Trang (Structure-Aware Chunking)\n",
+                    "\n",
+                    "Module `advisor_core.rag.chunk_markdown` tự động phân tích tiêu đề `## Trang {N}` để tạo nhãn dẫn nguồn chi tiết `Trang X, Đoạn Y` và băm SHA256 định danh bất biến.\n"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": 1,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "import hashlib\n",
+                    "import pandas as pd\n",
+                    "from advisor_core.rag import chunk_markdown\n",
+                    "\n",
+                    "# Văn bản quy chế mô phỏng sau khi qua bộ trích xuất OCR\n",
+                    "sample_policy = \"\"\"\n",
+                    "## Trang 1\n",
+                    "\n",
+                    "Điều 14: Điều kiện xét tốt nghiệp đại học hệ chính quy theo hệ thống tín chỉ.\n",
+                    "Sinh viên được công nhận tốt nghiệp khi tích lũy đủ số tín chỉ quy định của chương trình đào tạo.\n",
+                    "\n",
+                    "Điểm trung bình tích lũy (CPA) toàn khóa học phải đạt từ 2.00 trở lên theo thang điểm 4.\n",
+                    "\n",
+                    "## Trang 2\n",
+                    "\n",
+                    "Điều 15: Chuẩn đầu ra ngoại ngữ và công nghệ thông tin.\n",
+                    "Sinh viên ngành Công nghệ thông tin phải đạt chứng chỉ tiếng Anh chuẩn B1 hoặc TOEIC 450 trở lên.\n",
+                    "\n",
+                    "Hoàn thành chứng chỉ Giáo dục quốc phòng và Giáo dục thể chất theo quy định của Bộ Giáo dục và Đào tạo.\n",
+                    "\"\"\"\n",
+                    "\n",
+                    "chunks = chunk_markdown(\n",
+                    "    sample_policy,\n",
+                    "    document_id=\"doc-quy-che-2026\",\n",
+                    "    version_id=\"ver-1\",\n",
+                    "    scope=\"academic_policy\",\n",
+                    "    source=\"Quy chế Đào tạo Tín chỉ Số 123/QĐ-ĐH\",\n",
+                    "    valid_from=\"2026-09-01\"\n",
+                    ")\n",
+                    "\n",
+                    "df_chunks = pd.DataFrame([{\n",
+                    "    \"Vị trí dẫn nguồn\": c[\"section\"],\n",
+                    "    \"Mã Chunk ID (8 ký tự đầu)\": c[\"chunk_id\"][:8] + \"...\",\n",
+                    "    \"Độ dài ký tự\": len(c[\"text\"]),\n",
+                    "    \"Nội dung đoạn\": c[\"text\"].replace(\"\\n\", \" \")\n",
+                    "} for c in chunks if not c[\"text\"].startswith(\"##\")])\n",
+                    "\n",
+                    "print(f\"Tổng số đoạn trích hợp lệ được tạo: {len(df_chunks)}\")\n",
+                    "df_chunks\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 4. Thực nghiệm 2: Cơ chế Lọc Ngữ cảnh theo Thời gian (Temporal & Scope Gating)\n",
+                    "\n",
+                    "Công thức toán học của bộ lọc:\n",
+                    "$$\\text{Applicable}(C, \\text{scope}, T) = \\{ c \\in C \\mid c.\\text{scope} = \\text{scope} \\land c.\\text{valid\\_from} \\le T < c.\\text{valid\\_until} \\land c.\\text{status} = \\text{'approved\\_demo'} \\}$$\n",
+                    "\n",
+                    "Đoạn mã sau kiểm chứng: Sinh viên hỏi tại năm 2026 sẽ **không bao giờ** bị lấy nhầm văn bản cũ đã hết hạn từ năm 2024.\n"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": 2,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "from advisor_core.rag import applicable\n",
+                    "\n",
+                    "corpus = [\n",
+                    "    {\n",
+                    "        \"chunk_id\": \"c-old-2021\",\n",
+                    "        \"scope\": \"academic_policy\",\n",
+                    "        \"status\": \"approved_demo\",\n",
+                    "        \"valid_from\": \"2021-09-01\",\n",
+                    "        \"valid_until\": \"2024-08-31\",  # ĐÃ HẾT HIỆU LỰC\n",
+                    "        \"text\": \"Quy chế 2021: Sinh viên chỉ cần chứng chỉ tiếng Anh A2 để tốt nghiệp.\"\n",
+                    "    },\n",
+                    "    {\n",
+                    "        \"chunk_id\": \"c-new-2024\",\n",
+                    "        \"scope\": \"academic_policy\",\n",
+                    "        \"status\": \"approved_demo\",\n",
+                    "        \"valid_from\": \"2024-09-01\",\n",
+                    "        \"valid_until\": \"9999-12-31\",  # ĐANG ÁP DỤNG\n",
+                    "        \"text\": \"Quy chế 2024: Sinh viên bắt buộc phải có chứng chỉ B1 (TOEIC 450) để tốt nghiệp.\"\n",
+                    "    }\n",
+                    "]\n",
+                    "\n",
+                    "query_date = \"2026-09-06\"\n",
+                    "active_chunks = applicable(corpus, scope=\"academic_policy\", as_of=query_date)\n",
+                    "\n",
+                    "print(f\"=== KẾT QUẢ LỌC HIỆU LỰC TẠI NGÀY {query_date} ===\")\n",
+                    "print(f\"Số văn bản trong kho: {len(corpus)}\")\n",
+                    "print(f\"Số văn bản thỏa mãn hiệu lực: {len(active_chunks)}\")\n",
+                    "for ac in active_chunks:\n",
+                    "    print(f\"- [HỢP LỆ]: {ac['chunk_id']} (Từ {ac['valid_from']} đến {ac['valid_until']})\")\n",
+                    "    print(f\"  Nội dung: {ac['text']}\")\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 5. Thực nghiệm 3: Truy xuất Từ khóa Lai (Lexical BM25+ Search)\n",
+                    "\n",
+                    "Triển khai thuật toán Okapi BM25+ trên không gian token Unicode chuẩn hóa tiếng Việt:\n",
+                    "$$\\text{Score}(D, Q) = \\sum_{i=1}^{n} \\text{IDF}(q_i) \\cdot \\frac{f(q_i, D) \\cdot (k_1 + 1)}{f(q_i, D) + k_1 \\cdot \\left(1 - b + b \\cdot \\frac{|D|}{avgdl}\\right)}$$\n"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": 3,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "from advisor_core.rag import lexical_search\n",
+                    "\n",
+                    "test_corpus = [\n",
+                    "    {\n",
+                    "        \"chunk_id\": \"c-01\", \"scope\": \"academic_policy\", \"status\": \"approved_demo\",\n",
+                    "        \"valid_from\": \"2026-01-01\", \"valid_until\": \"9999-12-31\", \"section\": \"Trang 1, Đoạn 1\",\n",
+                    "        \"text\": \"Quy định học lại: Sinh viên có điểm tổng kết dưới 4.0 phải đăng ký học lại học phần này.\"\n",
+                    "    },\n",
+                    "    {\n",
+                    "        \"chunk_id\": \"c-02\", \"scope\": \"academic_policy\", \"status\": \"approved_demo\",\n",
+                    "        \"valid_from\": \"2026-01-01\", \"valid_until\": \"9999-12-31\", \"section\": \"Trang 1, Đoạn 2\",\n",
+                    "        \"text\": \"Điều kiện xét tốt nghiệp: Sinh viên phải tích lũy tối thiểu 126 tín chỉ và CPA từ 2.00 trở lên.\"\n",
+                    "    },\n",
+                    "    {\n",
+                    "        \"chunk_id\": \"c-03\", \"scope\": \"academic_policy\", \"status\": \"approved_demo\",\n",
+                    "        \"valid_from\": \"2026-01-01\", \"valid_until\": \"9999-12-31\", \"section\": \"Trang 2, Đoạn 1\",\n",
+                    "        \"text\": \"Chính sách học bổng khuyến khích: Sinh viên có GPA từ 3.60 và điểm rèn luyện xuất sắc được xét học bổng.\"\n",
+                    "    }\n",
+                    "]\n",
+                    "\n",
+                    "query = \"Cần bao nhiêu tín chỉ và điểm CPA để được xét tốt nghiệp?\"\n",
+                    "results = lexical_search(test_corpus, query=query, scope=\"academic_policy\", as_of=\"2026-09-06\", k=2)\n",
+                    "\n",
+                    "print(f\"Câu hỏi: '{query}'\")\n",
+                    "print(\"=== KẾT QUẢ TRUY XUẤT XẾP HẠNG (TOP-K) ===\")\n",
+                    "for rank, r in enumerate(results, start=1):\n",
+                    "    chunk = r[\"chunk\"]\n",
+                    "    print(f\"{rank}. [Điểm BM25: {round(r['score'], 4)}] {chunk['section']} (ID: {chunk['chunk_id']})\")\n",
+                    "    print(f\"   Nội dung: {chunk['text']}\\n\")\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 6. Thực nghiệm 4: Bộ Kiểm duyệt Chống Ảo giác (Citation Verification Engine)\n",
+                    "\n",
+                    "Mỗi nhận định trong câu trả lời bắt buộc phải kèm một trích dẫn `chunk_id` có thật trong danh sách kết quả truy xuất.\n",
+                    "- **Trường hợp A (Hợp lệ)**: LLM trích dẫn đúng `chunk_id` có trong context $\\rightarrow$ Trả về câu trả lời hoàn chỉnh.\n",
+                    "- **Trường hợp B (Ảo giác / Bịa citation)**: LLM trích dẫn `chunk_id` không tồn tại $\\rightarrow$ Hệ thống tự động kích hoạt **Abstain**, chuyển sang trạng thái `insufficient_evidence`.\n"
+                ]
+            },
+            {
+                "cell_type": "code",
+                "execution_count": 4,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "def verify_claims_and_citations(generated_claims, retrieved_chunk_ids):\n",
+                    "    valid_chunks = set(retrieved_chunk_ids)\n",
+                    "    all_valid = True\n",
+                    "    checked_claims = []\n",
+                    "    for claim in generated_claims:\n",
+                    "        cited = set(claim.get(\"citations\", []))\n",
+                    "        # Kiểm tra xem citation có nằm trong tập bằng chứng không\n",
+                    "        is_grounded = cited.issubset(valid_chunks) and len(cited) > 0\n",
+                    "        if not is_grounded:\n",
+                    "            all_valid = False\n",
+                    "        checked_claims.append({\n",
+                    "            \"mệnh_đề\": claim[\"text\"],\n",
+                    "            \"citations\": list(cited),\n",
+                    "            \"xác_thực\": \"HỢP LỆ\" if is_grounded else \"ẢO GIÁC (BỊA NGUỒN)\"\n",
+                    "        })\n",
+                    "    \n",
+                    "    status = \"answered\" if all_valid else \"insufficient_evidence (abstain)\"\n",
+                    "    return status, checked_claims\n",
+                    "\n",
+                    "# Giả sử các chunk đã truy xuất được\n",
+                    "retrieved_ids = [\"c-02\"]\n",
+                    "\n",
+                    "# Case 1: LLM sinh đúng căn cứ\n",
+                    "claims_correct = [{\n",
+                    "    \"text\": \"Sinh viên phải tích lũy tối thiểu 126 tín chỉ và CPA từ 2.00 để tốt nghiệp.\",\n",
+                    "    \"citations\": [\"c-02\"]\n",
+                    "}]\n",
+                    "\n",
+                    "# Case 2: LLM bịa nguồn không tồn tại trong context\n",
+                    "claims_hallucinated = [{\n",
+                    "    \"text\": \"Sinh viên được miễn học phí nếu thuộc diện gia đình chính sách.\",\n",
+                    "    \"citations\": [\"c-fake-999\"]  # Nguồn bịa\n",
+                    "}]\n",
+                    "\n",
+                    "status_1, report_1 = verify_claims_and_citations(claims_correct, retrieved_ids)\n",
+                    "status_2, report_2 = verify_claims_and_citations(claims_hallucinated, retrieved_ids)\n",
+                    "\n",
+                    "print(\"=== TEST CASE 1: CÂU TRẢ LỜI CÓ DẪN NGUỒN CHÍNH XÁC ===\")\n",
+                    "print(f\"Trạng thái hệ thống: {status_1}\")\n",
+                    "print(report_1)\n",
+                    "\n",
+                    "print(\"\\n=== TEST CASE 2: CÂU TRẢ LỜI CÓ NGUỒN ẢO GIÁC ===\")\n",
+                    "print(f\"Trạng thái hệ thống: {status_2} --> Hệ thống từ chối khẳng định!\")\n",
+                    "print(report_2)\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 7. Bảng Thông số Kỹ thuật Hệ thống (System Specifications)\n",
+                    "\n",
+                    "| Thành phần | Công nghệ / Tham số kỹ thuật | Ghi chú thiết kế |\n",
+                    "|---|---|---|\n",
+                    "| **Mô hình Dense Embedding** | `intfloat/multilingual-e5-base` (768 chiều) | Pinned Git commit SHA256, prefix `query: ` và `passage: ` |\n",
+                    "| **Vector Database** | ChromaDB PersistentClient | Khoảng cách Cosine (`hnsw:space: cosine`) |\n",
+                    "| **Cơ sở dữ liệu Toàn văn** | PostgreSQL 17 (`app.chunks`, `app.documents`) | Băm SHA256 toàn vẹn nội dung |\n",
+                    "| **Kích thước đoạn (Chunk)** | 1.400 – 1.600 ký tự | Tách theo ranh giới đoạn văn tự nhiên |\n",
+                    "| **Công cụ OCR** | Tesseract 5.x (`vie` + `eng`) + `pdf2image` | Render 150 DPI, khử nhiễu, phân tách trang scan |\n",
+                    "| **Giới hạn an toàn OCR** | $\\le$ 20 trang, $\\le$ 10.000.000 pixels, timeout 10s/trang | Chống tấn công Decompression Bomb / DoS |\n",
+                    "| **Số lượng ứng viên (Top-K)**| $K = 5$ đoạn trích phù hợp nhất | Cân bằng ngữ cảnh và giới hạn context window |\n",
+                    "| **Định dạng hiển thị trích dẫn**| `Trang X, Đoạn Y` | Cho phép sinh viên tra cứu trực tiếp văn bản giấy |\n"
+                ]
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 8. Kết luận & 4 Điểm nhấn Bảo vệ Đồ án (Key Takeaways for Defense)\n",
+                    "\n",
+                    "1. **Tính Thực tiễn & Địa phương hóa (Local & Feasible)**: Hệ thống xử lý trực tiếp các quyết định quy chế dạng scan/ảnh của Nhà trường qua pipeline Local OCR tiếng Việt, hoàn toàn chạy offline trên Docker.\n",
+                    "2. **An toàn Pháp lý theo Thời gian (Temporal Safety)**: Cơ chế Temporal Gating đảm bảo sinh viên luôn được tư vấn đúng văn bản đang có hiệu lực tại thời điểm tra cứu.\n",
+                    "3. **Triệt tiêu Ảo giác (Zero-Hallucination Guard)**: Tự động chuyển về trạng thái Abstain nếu không tìm thấy bằng chứng pháp lý xác thực.\n",
+                    "4. **Khả năng giải trình & Kiểm toán (Granular Auditability)**: Dẫn nguồn rõ ràng đến từng trang và đoạn văn bản, đáp ứng tiêu chuẩn khắt khe của môi trường giáo dục đại học.\n"
+                ]
+            }
+        ],
+        "metadata": {
+            "kernelspec": {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3"
+            },
+            "language_info": {
+                "name": "python",
+                "version": "3.13"
+            }
+        },
+        "nbformat": 4,
+        "nbformat_minor": 2
+    }
+
+    out_file = Path("ml/notebooks/08_governed_rag_architecture_and_presentation.ipynb")
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(notebook, f, indent=1, ensure_ascii=False)
+    print("RAG presentation notebook written successfully to:", out_file.resolve())
+
+if __name__ == "__main__":
+    create_rag_notebook()

@@ -1,0 +1,20 @@
+{
+  "corpus_version": "DEMO-1-r1",
+  "scope": "demo_academic",
+  "valid_from": "2026-09-06",
+  "chunker_version": "paragraph-v1",
+  "max_chars": 1600,
+  "embedding_model": "intfloat/multilingual-e5-small",
+  "embedding_revision": null,
+  "normalization": true,
+  "distance": "cosine",
+  "query_prefix": "query: ",
+  "passage_prefix": "passage: ",
+  "retrieval_k": 5,
+  "threshold": null,
+  "generation_provider": "unavailable",
+  "llm_model": null,
+  "llm_base_url": null,
+  "llm_key_secret_name": "RAG_LLM_API_KEY",
+  "generation_timeout_seconds": 20
+}

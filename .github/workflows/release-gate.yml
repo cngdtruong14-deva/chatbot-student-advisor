@@ -1,0 +1,113 @@
+name: Release Security Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secret-scan:
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - uses: actions/setup-node@v4
+        with: {node-version: "24", cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - name: Audit Python runtime dependencies
+        run: |
+          python -m pip install pip-audit==2.9.0
+          python -m pip_audit -r backend/requirements.lock
+      - name: Audit frontend production dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+  release-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: advisor-release-${{ github.run_id }}
+      API_IMAGE: advisor-api:release-${{ github.sha }}
+      WEB_IMAGE: advisor-web:release-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "24", cache: npm, cache-dependency-path: frontend/package-lock.json}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Python syntax gate
+        run: python -m compileall -q backend/app backend/tests packages/advisor_core/src ml/scripts ops/build_release_manifest.py
+      - name: Create ephemeral configuration
+        shell: pwsh
+        run: |
+          ./ops/Initialize-Local.ps1
+          ./ops/Initialize-Application.ps1
+      - name: Build immutable candidate images
+        run: |
+          docker build -t "$API_IMAGE" -f backend/Dockerfile .
+          docker build -t "$WEB_IMAGE" -f frontend/Dockerfile frontend
+      - name: Generated contract drift
+        run: |
+          node frontend/scripts/generate-api-types.mjs --check
+          node frontend/tests/api-contracts.cjs backend/tests/openapi.snapshot.json
+      - name: Disposable integration and browser E2E
+        shell: pwsh
+        run: ./ops/Execute-Stage8.ps1 -UseApiImage "$env:API_IMAGE" -UseWebImage "$env:WEB_IMAGE"
+      - name: Model, corpus and security schema tests
+        run: |
+          docker run --rm "$API_IMAGE" python -m unittest \
+            tests.test_bundle_inspection \
+            tests.test_corpus_manifest \
+            tests.test_rag_benchmark_v2 \
+            tests.test_release_safety \
+            tests.test_production_security -v
+      - name: Write source/image/artifact receipt
+        run: |
+          python ops/build_release_manifest.py \
+            --api-image "$API_IMAGE" \
+            --web-image "$WEB_IMAGE" \
+            --artifact backend/tests/openapi.snapshot.json \
+            --artifact contracts/model_manifest.schema.json \
+            --artifact contracts/oulad_features_v1.schema.json \
+            --output scratch/release-manifest.json \
+            --require-clean
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-gate-${{ github.sha }}
+          path: |
+            artifacts/stage8/
+            scratch/release-manifest.json
+          if-no-files-found: warn
+      - name: Verify no disposable Compose resources remain
+        if: always()
+        run: |
+          test -z "$(docker ps -aq --filter label=com.docker.compose.project=$COMPOSE_PROJECT_NAME)"
+          test -z "$(docker volume ls -q --filter label=com.docker.compose.project=$COMPOSE_PROJECT_NAME)"

@@ -1,0 +1,3 @@
+curriculum_code,course_code,prerequisite_course_code
+CNTT-2026,CS102,CS101
+CNTT-2026,CS301,CS102

@@ -1,0 +1,20 @@
+# Install Caddy on the host and replace the domain.  Compose web remains bound
+# to 127.0.0.1, so only Caddy exposes ports 80/443 and obtains TLS certificates.
+advisor.example.edu.vn {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8080
+    header {
+        -Server
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "no-referrer"
+    }
+    log {
+        output file /var/log/caddy/student-advisor-access.log {
+            roll_size 10MiB
+            roll_keep 5
+        }
+        format json
+    }
+}

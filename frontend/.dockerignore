@@ -1,0 +1,5 @@
+node_modules
+dist
+tests/*
+!tests/chat-cards.cjs
+*.log

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:student-advisor:contracts:model-manifest:1.0.0",
+  "title": "Student Advisor Model Manifest v1",
+  "description": "Metadata for a genuinely trained model bundle. Validation of hashes, trusted origin, runtime parity and domain compatibility is additionally required before activation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "model_id", "model_version", "domain_id", "target_id", "target_description", "positive_label", "cutoff_day", "feature_schema_id", "feature_schema_version", "feature_order", "advisor_core_version", "source_commit", "trained_at", "validation_level", "environment", "dataset_sha256", "split_sha256", "calibration_method", "alert_threshold", "parity_absolute_tolerance", "explanation", "files"],
+  "properties": {
+    "contract_version": {"const": "1.0.0"},
+    "model_id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]+$"},
+    "model_version": {"type": "string", "minLength": 1},
+    "domain_id": {"type": "string", "minLength": 1},
+    "target_id": {"type": "string", "minLength": 1},
+    "target_description": {"type": "string", "minLength": 20},
+    "positive_label": {"const": 1},
+    "cutoff_day": {"type": "integer", "minimum": 0},
+    "feature_schema_id": {"type": "string", "minLength": 1},
+    "feature_schema_version": {"type": "string", "minLength": 1},
+    "feature_order": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "advisor_core_version": {"type": "string", "minLength": 1},
+    "source_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "trained_at": {"type": "string", "format": "date-time"},
+    "validation_level": {"enum": ["dev_only", "final_test"]},
+    "environment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["python_version", "platform", "packages"],
+      "properties": {
+        "python_version": {"type": "string", "pattern": "^3\\.[0-9]+\\.[0-9]+$"},
+        "platform": {"type": "string", "minLength": 1},
+        "packages": {
+          "type": "object",
+          "required": ["scikit-learn", "numpy", "pandas", "scipy", "joblib"],
+          "additionalProperties": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "dataset_sha256": {"$ref": "#/$defs/sha256"},
+    "split_sha256": {"$ref": "#/$defs/sha256"},
+    "calibration_method": {"enum": ["none", "sigmoid", "isotonic"]},
+    "alert_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "parity_absolute_tolerance": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.0001},
+    "explanation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["method", "explained_output", "class_label", "config_file", "background_file", "base_model_file", "calibration_note"],
+      "properties": {
+        "method": {"enum": ["shap_tree", "shap_linear", "linear_contribution"]},
+        "explained_output": {"enum": ["probability", "log_odds", "base_probability", "base_log_odds"]},
+        "class_label": {"const": 1},
+        "config_file": {"const": "explanation_config.json"},
+        "background_file": {"type": ["string", "null"]},
+        "base_model_file": {"type": ["string", "null"]},
+        "calibration_note": {"type": "string"}
+      }
+    },
+    "files": {
+      "type": "object",
+      "required": ["pipeline.joblib", "feature_schema.json", "metrics.json", "model_card.md", "requirements-lock.txt", "splits_manifest.json", "smoke_inputs.jsonl", "smoke_expected.jsonl", "explanation_config.json"],
+      "propertyNames": {"pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$", "not": {"const": "manifest.json"}},
+      "additionalProperties": {"$ref": "#/$defs/file"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "file": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sha256", "size_bytes"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

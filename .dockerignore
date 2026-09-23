@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+docs
+data
+artifacts
+ml
+**/__pycache__
+**/node_modules

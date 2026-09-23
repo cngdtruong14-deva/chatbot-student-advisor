@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:student-advisor:contracts:oulad-risk-day28:1.0.0",
+  "title": "Proposed OULAD day-28 feature record v1",
+  "description": "Proposed contract to be confirmed against the actual dataset in M0. Metadata is not a predictor. Events use the inclusive interval [0,28].",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["case_id", "domain_id", "data_origin", "feature_schema_id", "feature_schema_version", "cutoff_day", "source_completeness", "features"],
+  "properties": {
+    "case_id": {"type": "string", "minLength": 1},
+    "domain_id": {"const": "oulad"},
+    "data_origin": {"enum": ["public_dataset", "synthetic"]},
+    "feature_schema_id": {"const": "oulad_risk_day28"},
+    "feature_schema_version": {"const": "1.0.0"},
+    "cutoff_day": {"const": 28},
+    "source_completeness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["static_verified", "vle_complete", "assessment_complete"],
+      "properties": {
+        "static_verified": {"const": true},
+        "vle_complete": {"const": true},
+        "assessment_complete": {"const": true}
+      }
+    },
+    "features": {
+      "type": "object", "additionalProperties": false,
+      "required": ["num_of_prev_attempts", "studied_credits", "vle_clicks_0_28", "vle_active_days_0_28", "assessment_submitted_count_0_28", "days_since_last_vle_activity"],
+      "properties": {
+        "num_of_prev_attempts": {"type": "integer", "minimum": 0},
+        "studied_credits": {"type": "number", "exclusiveMinimum": 0},
+        "vle_clicks_0_28": {"type": "integer", "minimum": 0},
+        "vle_active_days_0_28": {"type": "integer", "minimum": 0, "maximum": 29},
+        "assessment_submitted_count_0_28": {"type": "integer", "minimum": 0},
+        "days_since_last_vle_activity": {"type": ["integer", "null"], "minimum": 0, "maximum": 28}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"vle_active_days_0_28": {"const": 0}}},
+          "then": {"properties": {"vle_clicks_0_28": {"const": 0}, "days_since_last_vle_activity": {"type": "null"}}},
+          "else": {"properties": {"vle_clicks_0_28": {"minimum": 1}, "days_since_last_vle_activity": {"type": "integer"}}}
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+# Direct versions for Python 3.12. Every executed run exports its full pip freeze.
+# Not a claim that the complete Colab environment has already been validated.
+numpy==2.3.5
+pandas==2.3.3
+scipy==1.16.3
+scikit-learn==1.7.2
+joblib==1.5.2
+pyarrow==22.0.0
+matplotlib==3.10.7
+jsonschema==4.26.0
+shap==0.50.0

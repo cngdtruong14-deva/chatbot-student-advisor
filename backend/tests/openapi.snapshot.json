@@ -1,0 +1,5256 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Student Advisor — Academic Demo v2",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Login",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Refresh",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Logout",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/me": {
+      "get": {
+        "summary": "Profile",
+        "operationId": "profile_api_v1_students_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{student_id}/academic-summary": {
+      "get": {
+        "summary": "Academic Summary",
+        "operationId": "academic_summary_api_v1_students__student_id__academic_summary_get",
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AcademicSummary_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/me/goal": {
+      "patch": {
+        "summary": "Save Goal",
+        "operationId": "save_goal_api_v1_students_me_goal_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Goal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academic/required-gpa": {
+      "post": {
+        "summary": "Required",
+        "operationId": "required_api_v1_academic_required_gpa_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Required"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RequiredGPA_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academic/self-reported/preview": {
+      "post": {
+        "summary": "Self Reported Preview",
+        "operationId": "self_reported_preview_api_v1_academic_self_reported_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelfReportedPreview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academic/target-score": {
+      "post": {
+        "summary": "Target",
+        "operationId": "target_api_v1_academic_target_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Target"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TargetScore_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academic/simulations": {
+      "post": {
+        "summary": "Simulate",
+        "operationId": "simulate_api_v1_academic_simulations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Average"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CourseSimulation"
+                  }
+                ],
+                "title": "Body",
+                "discriminator": {
+                  "propertyName": "mode",
+                  "mapping": {
+                    "semester_average": "#/components/schemas/Average",
+                    "course_scores": "#/components/schemas/CourseSimulation"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Simulation_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/semesters": {
+      "get": {
+        "summary": "Semesters",
+        "operationId": "semesters_api_v1_catalog_semesters_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/curricula": {
+      "get": {
+        "summary": "Curricula Catalog",
+        "description": "Authenticated pilot catalog used by profile selection and admin imports.",
+        "operationId": "curricula_catalog_api_v1_catalog_curricula_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CurriculumCatalog_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/curricula/{curriculum_id}/courses": {
+      "get": {
+        "summary": "Courses",
+        "operationId": "courses_api_v1_catalog_curricula__curriculum_id__courses_get",
+        "parameters": [
+          {
+            "name": "curriculum_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Curriculum Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/offerings": {
+      "get": {
+        "summary": "Offerings",
+        "operationId": "offerings_api_v1_catalog_offerings_get",
+        "parameters": [
+          {
+            "name": "semester_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Semester Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/advisor/students": {
+      "get": {
+        "summary": "Assigned Students",
+        "operationId": "assigned_students_api_v1_advisor_students_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/advisor-assignments": {
+      "post": {
+        "summary": "Assign",
+        "operationId": "assign_api_v1_admin_advisor_assignments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Assignment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recommendations/courses": {
+      "get": {
+        "summary": "Recommendations",
+        "operationId": "recommendations_api_v1_recommendations_courses_get",
+        "parameters": [
+          {
+            "name": "semester_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Semester Id"
+            }
+          },
+          {
+            "name": "target_course_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Course Ids"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Recommendations_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/search": {
+      "post": {
+        "summary": "Search",
+        "operationId": "search_api_v1_knowledge_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Search"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/knowledge/chunks/{chunk_id}": {
+      "get": {
+        "summary": "Chunk",
+        "operationId": "chunk_api_v1_knowledge_chunks__chunk_id__get",
+        "parameters": [
+          {
+            "name": "chunk_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chunk Id"
+            }
+          },
+          {
+            "name": "corpus_scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "demo_academic",
+                "utt_test",
+                "utt_corpus"
+              ],
+              "type": "string",
+              "default": "demo_academic",
+              "title": "Corpus Scope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions": {
+      "post": {
+        "summary": "Create Session",
+        "operationId": "create_session_api_v1_chat_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSessionCreate",
+                "default": {
+                  "corpus_scope": "demo_academic"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ChatSession_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Chat Sessions",
+        "operationId": "chat_sessions_api_v1_chat_sessions_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}/messages": {
+      "get": {
+        "summary": "Messages",
+        "operationId": "messages_api_v1_chat_sessions__session_id__messages_get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Chat",
+        "operationId": "chat_api_v1_chat_sessions__session_id__messages_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Message"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ChatTurn_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research-cases": {
+      "get": {
+        "summary": "Research",
+        "operationId": "research_api_v1_research_cases_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ResearchCasePage_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/research/dashboard": {
+      "get": {
+        "summary": "Research Dashboard",
+        "description": "Aggregate synthetic research evidence; never infer or expose profiles.",
+        "operationId": "research_dashboard_api_v1_admin_research_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ResearchDashboard_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/majors": {
+      "get": {
+        "summary": "List Majors",
+        "description": "Backward-compatible admin view of the authenticated curriculum catalog.",
+        "operationId": "list_majors_api_v1_admin_majors_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_MajorOptions_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research-cases/{case_id}/predictions": {
+      "post": {
+        "summary": "Research Prediction",
+        "operationId": "research_prediction_api_v1_research_cases__case_id__predictions_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ResearchPrediction_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/research-cases/{case_id}/feature-snapshots": {
+      "post": {
+        "summary": "Save Research Features",
+        "operationId": "save_research_features_api_v1_research_cases__case_id__feature_snapshots_post",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Case Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchFeatures"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/predictions": {
+      "post": {
+        "summary": "Predict",
+        "operationId": "predict_api_v1_predictions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Prediction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/predictions/{prediction_id}": {
+      "get": {
+        "summary": "Prediction History",
+        "operationId": "prediction_history_api_v1_predictions__prediction_id__get",
+        "parameters": [
+          {
+            "name": "prediction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Prediction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/predictions/{prediction_id}/explanation": {
+      "get": {
+        "summary": "Prediction Explanation",
+        "operationId": "prediction_explanation_api_v1_predictions__prediction_id__explanation_get",
+        "parameters": [
+          {
+            "name": "prediction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Prediction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/templates/{import_type}": {
+      "get": {
+        "summary": "Import Template",
+        "operationId": "import_template_api_v1_admin_imports_templates__import_type__get",
+        "parameters": [
+          {
+            "name": "import_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Import Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/history": {
+      "get": {
+        "summary": "Import History",
+        "operationId": "import_history_api_v1_admin_imports_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/{import_type}": {
+      "post": {
+        "summary": "Import Csv Handler",
+        "operationId": "import_csv_handler_api_v1_admin_imports__import_type__post",
+        "parameters": [
+          {
+            "name": "import_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Import Type"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Dry Run"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/academic": {
+      "post": {
+        "summary": "Import Csv Handler",
+        "operationId": "import_csv_handler_api_v1_admin_imports_academic_post",
+        "parameters": [
+          {
+            "name": "import_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "academic",
+              "title": "Import Type"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Dry Run"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/imports/{job_id}": {
+      "get": {
+        "summary": "Import Status",
+        "operationId": "import_status_api_v1_admin_imports__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/documents": {
+      "get": {
+        "summary": "List Documents",
+        "operationId": "list_documents_api_v1_admin_documents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Register",
+        "operationId": "register_api_v1_admin_documents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/documents/{version_id}/ingest": {
+      "post": {
+        "summary": "Ingest Document",
+        "operationId": "ingest_document_api_v1_admin_documents__version_id__ingest_post",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/documents/{version_id}/activate": {
+      "post": {
+        "summary": "Activate Document",
+        "operationId": "activate_document_api_v1_admin_documents__version_id__activate_post",
+        "parameters": [
+          {
+            "name": "version_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Version Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/documents/extract": {
+      "post": {
+        "summary": "Extract Upload",
+        "operationId": "extract_upload_api_v1_admin_documents_extract_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_upload_api_v1_admin_documents_extract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-invites": {
+      "post": {
+        "summary": "Invite",
+        "operationId": "invite_api_v1_admin_account_invites_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OneTimeAccountCode_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "Register",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RegistrationResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/accounts/{user_id}/recovery": {
+      "post": {
+        "summary": "Recovery Issue",
+        "operationId": "recovery_issue_api_v1_admin_accounts__user_id__recovery_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OneTimeAccountCode_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/recover": {
+      "post": {
+        "summary": "Recover",
+        "operationId": "recover_api_v1_auth_recover_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Recovery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RecoveryResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/profile": {
+      "get": {
+        "summary": "Profile",
+        "operationId": "profile_api_v1_account_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Union_PersonalAccountProfile__NoneType__"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Profile Save",
+        "operationId": "profile_save_api_v1_account_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ProfileSaveResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/target-score": {
+      "post": {
+        "summary": "Personal Target",
+        "operationId": "personal_target_api_v1_account_target_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalTarget"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PersonalTargetResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/transcript": {
+      "get": {
+        "summary": "Get Transcript",
+        "operationId": "get_transcript_api_v1_account_transcript_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TranscriptView_"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Save Transcript",
+        "operationId": "save_transcript_api_v1_account_transcript_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TranscriptView_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/academic-summary": {
+      "get": {
+        "summary": "Academic Summary",
+        "operationId": "academic_summary_api_v1_account_academic_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PersonalSummary_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/required-gpa": {
+      "post": {
+        "summary": "Goal",
+        "operationId": "goal_api_v1_account_required_gpa_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalGoal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PersonalGoalResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/simulations": {
+      "post": {
+        "summary": "Simulate",
+        "operationId": "simulate_api_v1_account_simulations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonalSimulation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PersonalSimulationResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/sessions/{session_id}/messages/{client_turn_id}/feedback": {
+      "post": {
+        "summary": "Submit Feedback",
+        "operationId": "submit_feedback_api_v1_chat_sessions__session_id__messages__client_turn_id__feedback_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "client_turn_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Client Turn Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RAGFeedbackInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RAGFeedback_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/rag-feedback": {
+      "get": {
+        "summary": "List Feedback",
+        "description": "Operational review surface; it excludes message content and passwords.",
+        "operationId": "list_feedback_api_v1_admin_rag_feedback_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/live": {
+      "get": {
+        "summary": "Live",
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/capabilities": {
+      "get": {
+        "summary": "System Capabilities",
+        "operationId": "system_capabilities_api_v1_system_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcademicSummary": {
+        "properties": {
+          "cumulative_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Gpa"
+          },
+          "quality_points": {
+            "type": "string",
+            "title": "Quality Points"
+          },
+          "gpa_credits": {
+            "type": "string",
+            "title": "Gpa Credits"
+          },
+          "student_id": {
+            "type": "string",
+            "title": "Student Id"
+          },
+          "curriculum_id": {
+            "type": "string",
+            "title": "Curriculum Id"
+          },
+          "academic_revision": {
+            "type": "integer",
+            "title": "Academic Revision"
+          },
+          "earned_credits": {
+            "type": "string",
+            "title": "Earned Credits"
+          },
+          "required_credits": {
+            "type": "string",
+            "title": "Required Credits"
+          },
+          "remaining_required_credits": {
+            "type": "string",
+            "title": "Remaining Required Credits"
+          },
+          "failed_courses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failed Courses"
+          },
+          "semester_history": {
+            "items": {
+              "$ref": "#/components/schemas/SemesterResult"
+            },
+            "type": "array",
+            "title": "Semester History"
+          },
+          "transcript": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Transcript"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "data_origin": {
+            "type": "string",
+            "title": "Data Origin"
+          },
+          "domain_id": {
+            "type": "string",
+            "title": "Domain Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "cumulative_gpa",
+          "quality_points",
+          "gpa_credits",
+          "student_id",
+          "curriculum_id",
+          "academic_revision",
+          "earned_credits",
+          "required_credits",
+          "remaining_required_credits",
+          "failed_courses",
+          "semester_history",
+          "transcript",
+          "goal",
+          "policy_version",
+          "data_origin",
+          "domain_id"
+        ],
+        "title": "AcademicSummary"
+      },
+      "Assignment": {
+        "properties": {
+          "advisor_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Advisor User Id"
+          },
+          "student_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Student Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "advisor_user_id",
+          "student_id"
+        ],
+        "title": "Assignment"
+      },
+      "Average": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "semester_average",
+            "title": "Mode"
+          },
+          "assumed_gpa": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 4.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Assumed Gpa"
+          },
+          "gpa_credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 126.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Gpa Credits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "assumed_gpa",
+          "gpa_credits"
+        ],
+        "title": "Average"
+      },
+      "Body_extract_upload_api_v1_admin_documents_extract_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_extract_upload_api_v1_admin_documents_extract_post"
+      },
+      "ChatCard": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "data"
+        ],
+        "title": "ChatCard"
+      },
+      "ChatSession": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "expires_at"
+        ],
+        "title": "ChatSession"
+      },
+      "ChatSessionCreate": {
+        "properties": {
+          "corpus_scope": {
+            "type": "string",
+            "enum": [
+              "demo_academic",
+              "utt_test",
+              "utt_corpus"
+            ],
+            "title": "Corpus Scope",
+            "default": "demo_academic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ChatSessionCreate"
+      },
+      "ChatTurn": {
+        "properties": {
+          "turn_id": {
+            "type": "string",
+            "title": "Turn Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "needs_clarification",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/ChatCard"
+            },
+            "type": "array",
+            "title": "Cards"
+          },
+          "citations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Citations"
+          },
+          "provider_status": {
+            "type": "string",
+            "title": "Provider Status"
+          },
+          "follow_up_question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Up Question"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "turn_id",
+          "status",
+          "answer",
+          "cards",
+          "citations",
+          "provider_status"
+        ],
+        "title": "ChatTurn"
+      },
+      "CourseScore": {
+        "properties": {
+          "offering_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Offering Id"
+          },
+          "assumed_final_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Assumed Final Score"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "offering_id",
+          "assumed_final_score"
+        ],
+        "title": "CourseScore"
+      },
+      "CourseSimulation": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "const": "course_scores",
+            "title": "Mode"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CourseScore"
+            },
+            "type": "array",
+            "maxItems": 42,
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "items"
+        ],
+        "title": "CourseSimulation"
+      },
+      "CurriculumCatalog": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumOption"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CurriculumCatalog"
+      },
+      "CurriculumOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "major": {
+            "type": "string",
+            "title": "Major"
+          },
+          "faculty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Faculty"
+          },
+          "total_required_credits": {
+            "type": "string",
+            "title": "Total Required Credits"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "source_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Name"
+          },
+          "source_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sha256"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "version",
+          "major",
+          "faculty",
+          "total_required_credits",
+          "status",
+          "source_name",
+          "source_sha256"
+        ],
+        "title": "CurriculumOption"
+      },
+      "DocumentInput": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "document_type": {
+            "type": "string",
+            "pattern": "^(policy|procedure|guide)$",
+            "title": "Document Type",
+            "default": "policy"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Source"
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Version",
+            "default": "1"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date",
+            "title": "Valid Until",
+            "default": "9999-12-31"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "corpus_scope": {
+            "type": "string",
+            "enum": [
+              "demo_academic",
+              "utt_test"
+            ],
+            "title": "Corpus Scope",
+            "default": "demo_academic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "source",
+          "content",
+          "valid_from"
+        ],
+        "title": "DocumentInput"
+      },
+      "DualSummary": {
+        "properties": {
+          "gpa_4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpa 4"
+          },
+          "gpa_10": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpa 10"
+          },
+          "gpa_credits": {
+            "type": "string",
+            "title": "Gpa Credits"
+          },
+          "quality_points_4": {
+            "type": "string",
+            "title": "Quality Points 4"
+          },
+          "quality_points_10": {
+            "type": "string",
+            "title": "Quality Points 10"
+          },
+          "earned_credits": {
+            "type": "string",
+            "title": "Earned Credits"
+          },
+          "incomplete_courses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Incomplete Courses"
+          },
+          "non_gpa_incomplete_courses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Non Gpa Incomplete Courses"
+          },
+          "pending_attempts": {
+            "type": "integer",
+            "title": "Pending Attempts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "gpa_4",
+          "gpa_10",
+          "gpa_credits",
+          "quality_points_4",
+          "quality_points_10",
+          "earned_credits",
+          "incomplete_courses",
+          "non_gpa_incomplete_courses",
+          "pending_attempts"
+        ],
+        "title": "DualSummary"
+      },
+      "Envelope_AcademicSummary_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AcademicSummary"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AcademicSummary]"
+      },
+      "Envelope_ChatSession_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ChatSession"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ChatSession]"
+      },
+      "Envelope_ChatTurn_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ChatTurn"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ChatTurn]"
+      },
+      "Envelope_CurriculumCatalog_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CurriculumCatalog"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[CurriculumCatalog]"
+      },
+      "Envelope_MajorOptions_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MajorOptions"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[MajorOptions]"
+      },
+      "Envelope_OneTimeAccountCode_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OneTimeAccountCode"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[OneTimeAccountCode]"
+      },
+      "Envelope_PersonalGoalResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PersonalGoalResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[PersonalGoalResult]"
+      },
+      "Envelope_PersonalSimulationResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PersonalSimulationResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[PersonalSimulationResult]"
+      },
+      "Envelope_PersonalSummary_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PersonalSummary"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[PersonalSummary]"
+      },
+      "Envelope_PersonalTargetResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PersonalTargetResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[PersonalTargetResult]"
+      },
+      "Envelope_ProfileSaveResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProfileSaveResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ProfileSaveResult]"
+      },
+      "Envelope_RAGFeedback_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RAGFeedback"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[RAGFeedback]"
+      },
+      "Envelope_Recommendations_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Recommendations"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[Recommendations]"
+      },
+      "Envelope_RecoveryResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RecoveryResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[RecoveryResult]"
+      },
+      "Envelope_RegistrationResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RegistrationResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[RegistrationResult]"
+      },
+      "Envelope_RequiredGPA_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RequiredGPA"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[RequiredGPA]"
+      },
+      "Envelope_ResearchCasePage_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ResearchCasePage"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ResearchCasePage]"
+      },
+      "Envelope_ResearchDashboard_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ResearchDashboard"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ResearchDashboard]"
+      },
+      "Envelope_ResearchPrediction_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ResearchPrediction"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ResearchPrediction]"
+      },
+      "Envelope_Simulation_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Simulation"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[Simulation]"
+      },
+      "Envelope_TargetScore_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TargetScore"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[TargetScore]"
+      },
+      "Envelope_TranscriptView_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TranscriptView"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[TranscriptView]"
+      },
+      "Envelope_Union_PersonalAccountProfile__NoneType__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonalAccountProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[Union[PersonalAccountProfile, NoneType]]"
+      },
+      "GPAResult": {
+        "properties": {
+          "cumulative_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Gpa"
+          },
+          "quality_points": {
+            "type": "string",
+            "title": "Quality Points"
+          },
+          "gpa_credits": {
+            "type": "string",
+            "title": "Gpa Credits"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "cumulative_gpa",
+          "quality_points",
+          "gpa_credits"
+        ],
+        "title": "GPAResult"
+      },
+      "Goal": {
+        "properties": {
+          "target_gpa": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 4.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Target Gpa"
+          },
+          "target_graduation_semester_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Graduation Semester Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_gpa"
+        ],
+        "title": "Goal"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Login": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "Login"
+      },
+      "MajorOptions": {
+        "properties": {
+          "majors": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumOption"
+            },
+            "type": "array",
+            "title": "Majors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "majors"
+        ],
+        "title": "MajorOptions"
+      },
+      "Message": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "client_turn_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client Turn Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message",
+          "client_turn_id"
+        ],
+        "title": "Message"
+      },
+      "Meta": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "contract_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Contract Version"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id",
+          "contract_version",
+          "warnings"
+        ],
+        "title": "Meta"
+      },
+      "OneTimeAccountCode": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "display_once": {
+            "type": "boolean",
+            "const": true,
+            "title": "Display Once"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "expires_at",
+          "display_once"
+        ],
+        "title": "OneTimeAccountCode"
+      },
+      "PersonalAccountProfile": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "major": {
+            "type": "string",
+            "title": "Major"
+          },
+          "cohort": {
+            "type": "string",
+            "title": "Cohort"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "self_reported",
+            "title": "Data Origin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "major",
+          "cohort",
+          "data_origin"
+        ],
+        "title": "PersonalAccountProfile"
+      },
+      "PersonalAttempt-Input": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "term": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "title": "Term"
+          },
+          "attempt": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Attempt"
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 30.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Credits"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "graded",
+              "pending",
+              "absent_or_barred"
+            ],
+            "title": "Status"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "available_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available On"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "term",
+          "attempt",
+          "credits",
+          "status"
+        ],
+        "title": "PersonalAttempt"
+      },
+      "PersonalAttempt-Output": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "term": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "title": "Term"
+          },
+          "attempt": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Attempt"
+          },
+          "credits": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$",
+            "title": "Credits"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "graded",
+              "pending",
+              "absent_or_barred"
+            ],
+            "title": "Status"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "available_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available On"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "term",
+          "attempt",
+          "credits",
+          "status"
+        ],
+        "title": "PersonalAttempt"
+      },
+      "PersonalComponent": {
+        "properties": {
+          "weight": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Weight"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "weight"
+        ],
+        "title": "PersonalComponent"
+      },
+      "PersonalGoal": {
+        "properties": {
+          "expected_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision"
+          },
+          "target_gpa": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 4.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Target Gpa"
+          },
+          "future_gpa_credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 500.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              }
+            ],
+            "title": "Future Gpa Credits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_gpa",
+          "future_gpa_credits"
+        ],
+        "title": "PersonalGoal"
+      },
+      "PersonalGoalResult": {
+        "properties": {
+          "academic_revision": {
+            "type": "integer",
+            "title": "Academic Revision"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "self_reported",
+            "title": "Data Origin",
+            "default": "self_reported"
+          },
+          "current_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Gpa"
+          },
+          "target_gpa": {
+            "type": "string",
+            "title": "Target Gpa"
+          },
+          "required_future_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Future Gpa"
+          },
+          "feasibility": {
+            "type": "string",
+            "title": "Feasibility"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "academic_revision",
+          "current_gpa",
+          "target_gpa",
+          "required_future_gpa",
+          "feasibility",
+          "assumptions"
+        ],
+        "title": "PersonalGoalResult"
+      },
+      "PersonalProfile": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Display Name"
+          },
+          "major": {
+            "type": "string",
+            "maxLength": 120,
+            "title": "Major",
+            "default": ""
+          },
+          "cohort": {
+            "type": "string",
+            "maxLength": 60,
+            "title": "Cohort",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "title": "PersonalProfile"
+      },
+      "PersonalSimulation": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/PersonalTranscript-Input"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "transcript"
+        ],
+        "title": "PersonalSimulation"
+      },
+      "PersonalSimulationResult": {
+        "properties": {
+          "academic_revision": {
+            "type": "integer",
+            "title": "Academic Revision"
+          },
+          "persisted": {
+            "type": "boolean",
+            "const": false,
+            "title": "Persisted",
+            "default": false
+          },
+          "before": {
+            "$ref": "#/components/schemas/PersonalSummary"
+          },
+          "after": {
+            "$ref": "#/components/schemas/PersonalSummary"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "academic_revision",
+          "before",
+          "after"
+        ],
+        "title": "PersonalSimulationResult"
+      },
+      "PersonalSummary": {
+        "properties": {
+          "academic_revision": {
+            "type": "integer",
+            "title": "Academic Revision"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version",
+            "default": "ACADEMIC-DEMO-2.0.0"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "self_reported",
+            "title": "Data Origin",
+            "default": "self_reported"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DualSummary"
+          },
+          "required_credits": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Credits"
+          },
+          "remaining_credits": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Credits"
+          },
+          "semester_history": {
+            "items": {
+              "$ref": "#/components/schemas/TermHistory"
+            },
+            "type": "array",
+            "title": "Semester History"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "trend_4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend 4"
+          },
+          "trend_10": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend 10"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "academic_revision",
+          "summary",
+          "required_credits",
+          "remaining_credits",
+          "semester_history",
+          "warnings"
+        ],
+        "title": "PersonalSummary"
+      },
+      "PersonalTarget": {
+        "properties": {
+          "target_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Target Score"
+          },
+          "minimum_unknown_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Minimum Unknown Score",
+            "default": "0"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalComponent"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Components"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_score",
+          "components"
+        ],
+        "title": "PersonalTarget"
+      },
+      "PersonalTargetResult": {
+        "properties": {
+          "required_score": {
+            "type": "string",
+            "title": "Required Score"
+          },
+          "feasibility": {
+            "type": "string",
+            "enum": [
+              "achievable",
+              "impossible"
+            ],
+            "title": "Feasibility"
+          },
+          "persisted": {
+            "type": "boolean",
+            "const": false,
+            "title": "Persisted",
+            "default": false
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "required_score",
+          "feasibility",
+          "assumptions"
+        ],
+        "title": "PersonalTargetResult"
+      },
+      "PersonalTerm": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "title": "Code"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "start_date",
+          "end_date"
+        ],
+        "title": "PersonalTerm"
+      },
+      "PersonalTranscript-Input": {
+        "properties": {
+          "policy_version": {
+            "type": "string",
+            "const": "ACADEMIC-DEMO-2.0.0",
+            "title": "Policy Version",
+            "default": "ACADEMIC-DEMO-2.0.0"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalTerm"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Terms"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalAttempt-Input"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Attempts"
+          },
+          "required_credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 500.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Credits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PersonalTranscript"
+      },
+      "PersonalTranscript-Output": {
+        "properties": {
+          "policy_version": {
+            "type": "string",
+            "const": "ACADEMIC-DEMO-2.0.0",
+            "title": "Policy Version",
+            "default": "ACADEMIC-DEMO-2.0.0"
+          },
+          "terms": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalTerm"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Terms"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/PersonalAttempt-Output"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Attempts"
+          },
+          "required_credits": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Credits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PersonalTranscript"
+      },
+      "Prediction": {
+        "properties": {
+          "enrollment_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Enrollment Id"
+          },
+          "prediction_as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Prediction As Of"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enrollment_id",
+          "prediction_as_of"
+        ],
+        "title": "Prediction"
+      },
+      "ProfileSaveResult": {
+        "properties": {
+          "saved": {
+            "type": "boolean",
+            "const": true,
+            "title": "Saved"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "self_reported",
+            "title": "Data Origin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "saved",
+          "data_origin"
+        ],
+        "title": "ProfileSaveResult"
+      },
+      "RAGFeedback": {
+        "properties": {
+          "saved": {
+            "type": "boolean",
+            "const": true,
+            "title": "Saved"
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "helpful",
+              "not_helpful",
+              "incorrect_citation"
+            ],
+            "title": "Label"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "saved",
+          "label",
+          "expires_at",
+          "replayed"
+        ],
+        "title": "RAGFeedback"
+      },
+      "RAGFeedbackInput": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "helpful",
+              "not_helpful",
+              "incorrect_citation"
+            ],
+            "title": "Label"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "RAGFeedbackInput"
+      },
+      "Recommendations": {
+        "properties": {
+          "selected": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Selected"
+          },
+          "eligible": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Eligible"
+          },
+          "excluded": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Excluded"
+          },
+          "total_credits": {
+            "type": "string",
+            "title": "Total Credits"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "data_origin": {
+            "type": "string",
+            "title": "Data Origin"
+          },
+          "algorithm": {
+            "type": "string",
+            "title": "Algorithm"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          },
+          "is_optimal": {
+            "type": "boolean",
+            "const": false,
+            "title": "Is Optimal"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "selected",
+          "eligible",
+          "excluded",
+          "total_credits",
+          "policy_version",
+          "data_origin",
+          "algorithm",
+          "assumptions",
+          "is_optimal"
+        ],
+        "title": "Recommendations"
+      },
+      "Recovery": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 20,
+            "title": "Code"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "password"
+        ],
+        "title": "Recovery"
+      },
+      "RecoveryResult": {
+        "properties": {
+          "recovered": {
+            "type": "boolean",
+            "const": true,
+            "title": "Recovered"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recovered"
+        ],
+        "title": "RecoveryResult"
+      },
+      "Registration": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_]{3,32}$",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password"
+          },
+          "invite_code": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 20,
+            "title": "Invite Code"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "invite_code"
+        ],
+        "title": "Registration"
+      },
+      "RegistrationResult": {
+        "properties": {
+          "registered": {
+            "type": "boolean",
+            "const": true,
+            "title": "Registered"
+          }
+        },
+        "type": "object",
+        "required": [
+          "registered"
+        ],
+        "title": "RegistrationResult"
+      },
+      "Required": {
+        "properties": {
+          "target_gpa": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 4.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Target Gpa"
+          },
+          "future_gpa_credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 126.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Future Gpa Credits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_gpa",
+          "future_gpa_credits"
+        ],
+        "title": "Required"
+      },
+      "RequiredGPA": {
+        "properties": {
+          "current_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Gpa"
+          },
+          "target_gpa": {
+            "type": "string",
+            "title": "Target Gpa"
+          },
+          "gap": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap"
+          },
+          "required_future_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required Future Gpa"
+          },
+          "feasibility": {
+            "type": "string",
+            "enum": [
+              "achievable",
+              "impossible",
+              "insufficient_data",
+              "completed_target_met",
+              "completed_target_not_met"
+            ],
+            "title": "Feasibility"
+          },
+          "gpa_scale_max": {
+            "type": "string",
+            "title": "Gpa Scale Max"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "data_origin": {
+            "type": "string",
+            "title": "Data Origin"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          },
+          "academic_revision": {
+            "type": "integer",
+            "title": "Academic Revision"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "current_gpa",
+          "target_gpa",
+          "gap",
+          "required_future_gpa",
+          "feasibility",
+          "gpa_scale_max",
+          "policy_version",
+          "data_origin",
+          "assumptions",
+          "academic_revision"
+        ],
+        "title": "RequiredGPA"
+      },
+      "ResearchCase": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source_case_key": {
+            "type": "string",
+            "title": "Source Case Key"
+          },
+          "domain_id": {
+            "type": "string",
+            "enum": [
+              "oulad",
+              "academic_demo_v2"
+            ],
+            "title": "Domain Id"
+          },
+          "data_origin": {
+            "type": "string",
+            "enum": [
+              "public_dataset",
+              "synthetic"
+            ],
+            "title": "Data Origin"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "source_case_key",
+          "domain_id",
+          "data_origin"
+        ],
+        "title": "ResearchCase"
+      },
+      "ResearchCasePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResearchCase"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "ResearchCasePage"
+      },
+      "ResearchDashboard": {
+        "properties": {
+          "domain_id": {
+            "type": "string",
+            "const": "academic_demo_v2",
+            "title": "Domain Id"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "synthetic",
+            "title": "Data Origin"
+          },
+          "expected_case_count": {
+            "type": "integer",
+            "title": "Expected Case Count"
+          },
+          "case_count": {
+            "type": "integer",
+            "title": "Case Count"
+          },
+          "snapshot_count": {
+            "type": "integer",
+            "title": "Snapshot Count"
+          },
+          "prediction_count": {
+            "type": "integer",
+            "title": "Prediction Count"
+          },
+          "at_risk_count": {
+            "type": "integer",
+            "title": "At Risk Count"
+          },
+          "not_at_risk_count": {
+            "type": "integer",
+            "title": "Not At Risk Count"
+          },
+          "average_probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Probability"
+          },
+          "coverage_status": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "partial",
+              "empty"
+            ],
+            "title": "Coverage Status"
+          },
+          "model_versions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Model Versions"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "domain_id",
+          "data_origin",
+          "expected_case_count",
+          "case_count",
+          "snapshot_count",
+          "prediction_count",
+          "at_risk_count",
+          "not_at_risk_count",
+          "average_probability",
+          "coverage_status",
+          "model_versions",
+          "limitations"
+        ],
+        "title": "ResearchDashboard"
+      },
+      "ResearchFeatures": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Case Id"
+          },
+          "domain_id": {
+            "type": "string",
+            "enum": [
+              "oulad",
+              "academic_demo_v2"
+            ],
+            "title": "Domain Id"
+          },
+          "data_origin": {
+            "type": "string",
+            "enum": [
+              "public_dataset",
+              "synthetic"
+            ],
+            "title": "Data Origin"
+          },
+          "feature_schema_id": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Feature Schema Id"
+          },
+          "feature_schema_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Feature Schema Version"
+          },
+          "cutoff_day": {
+            "type": "integer",
+            "const": 28,
+            "title": "Cutoff Day"
+          },
+          "source_completeness": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Source Completeness"
+          },
+          "features": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id",
+          "domain_id",
+          "data_origin",
+          "feature_schema_id",
+          "feature_schema_version",
+          "cutoff_day",
+          "source_completeness",
+          "features"
+        ],
+        "title": "ResearchFeatures"
+      },
+      "ResearchPrediction": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "domain_id": {
+            "type": "string",
+            "enum": [
+              "oulad",
+              "academic_demo_v2"
+            ],
+            "title": "Domain Id"
+          },
+          "data_origin": {
+            "type": "string",
+            "enum": [
+              "public_dataset",
+              "synthetic"
+            ],
+            "title": "Data Origin"
+          },
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          },
+          "probability": {
+            "type": "number",
+            "title": "Probability"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "risk_label": {
+            "type": "string",
+            "enum": [
+              "at_risk",
+              "not_at_risk"
+            ],
+            "title": "Risk Label"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "domain_id",
+          "data_origin",
+          "model_id",
+          "model_version",
+          "probability",
+          "threshold",
+          "risk_label",
+          "disclaimer"
+        ],
+        "title": "ResearchPrediction"
+      },
+      "Search": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "document_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Types"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "corpus_scope": {
+            "type": "string",
+            "enum": [
+              "demo_academic",
+              "utt_test",
+              "utt_corpus"
+            ],
+            "title": "Corpus Scope",
+            "default": "demo_academic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "Search"
+      },
+      "SelfReportedCourse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code"
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 30.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Credits"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Score"
+          },
+          "attempt": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Attempt"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "credits",
+          "score",
+          "attempt"
+        ],
+        "title": "SelfReportedCourse"
+      },
+      "SelfReportedPreview": {
+        "properties": {
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/SelfReportedCourse"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Courses"
+          },
+          "target_gpa": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 4.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Target Gpa",
+            "default": "3.2"
+          },
+          "future_gpa_credits": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 126.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Future Gpa Credits",
+            "default": "0"
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "DEMO-1",
+              "POL-01-demo",
+              "ACADEMIC-DEMO-2.0.0"
+            ],
+            "title": "Policy",
+            "default": "DEMO-1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "courses"
+        ],
+        "title": "SelfReportedPreview"
+      },
+      "SemesterResult": {
+        "properties": {
+          "semester_id": {
+            "type": "string",
+            "title": "Semester Id"
+          },
+          "semester_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester Code"
+          },
+          "term_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Term Gpa"
+          },
+          "term_credits": {
+            "type": "string",
+            "title": "Term Credits"
+          },
+          "term_earned_credits": {
+            "type": "string",
+            "title": "Term Earned Credits"
+          },
+          "cumulative_gpa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Gpa"
+          },
+          "cumulative_earned_credits": {
+            "type": "string",
+            "title": "Cumulative Earned Credits"
+          },
+          "snapshot_rule": {
+            "type": "string",
+            "title": "Snapshot Rule"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "semester_id",
+          "semester_code",
+          "term_gpa",
+          "term_credits",
+          "term_earned_credits",
+          "cumulative_gpa",
+          "cumulative_earned_credits",
+          "snapshot_rule"
+        ],
+        "title": "SemesterResult"
+      },
+      "Simulation": {
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/GPAResult"
+          },
+          "after": {
+            "$ref": "#/components/schemas/GPAResult"
+          },
+          "academic_revision": {
+            "type": "integer",
+            "title": "Academic Revision"
+          },
+          "persisted": {
+            "type": "boolean",
+            "const": false,
+            "title": "Persisted"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "data_origin": {
+            "type": "string",
+            "title": "Data Origin"
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "before",
+          "after",
+          "academic_revision",
+          "persisted",
+          "policy_version",
+          "data_origin",
+          "assumptions"
+        ],
+        "title": "Simulation"
+      },
+      "Target": {
+        "properties": {
+          "enrollment_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Enrollment Id"
+          },
+          "target_total_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 10.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              }
+            ],
+            "title": "Target Total Score"
+          },
+          "unknown_component_code": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Unknown Component Code"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enrollment_id",
+          "target_total_score",
+          "unknown_component_code"
+        ],
+        "title": "Target"
+      },
+      "TargetScore": {
+        "properties": {
+          "required_score": {
+            "type": "string",
+            "title": "Required Score"
+          },
+          "max_score": {
+            "type": "string",
+            "title": "Max Score"
+          },
+          "minimum_exam_score": {
+            "type": "string",
+            "title": "Minimum Exam Score"
+          },
+          "feasibility": {
+            "type": "string",
+            "enum": [
+              "achievable",
+              "impossible"
+            ],
+            "title": "Feasibility"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "data_origin": {
+            "type": "string",
+            "title": "Data Origin"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "required_score",
+          "max_score",
+          "minimum_exam_score",
+          "feasibility",
+          "policy_version",
+          "data_origin"
+        ],
+        "title": "TargetScore"
+      },
+      "TermHistory": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "term": {
+            "$ref": "#/components/schemas/DualSummary"
+          },
+          "cumulative": {
+            "$ref": "#/components/schemas/DualSummary"
+          },
+          "unknown_result_dates": {
+            "type": "integer",
+            "title": "Unknown Result Dates"
+          },
+          "pending_results": {
+            "type": "integer",
+            "title": "Pending Results"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "partial",
+              "complete"
+            ],
+            "title": "Coverage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "term",
+          "cumulative",
+          "unknown_result_dates",
+          "pending_results",
+          "coverage"
+        ],
+        "title": "TermHistory"
+      },
+      "TranscriptSave": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/PersonalTranscript-Input"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision",
+          "transcript"
+        ],
+        "title": "TranscriptSave"
+      },
+      "TranscriptView": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/PersonalTranscript-Output"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "self_reported",
+            "title": "Data Origin",
+            "default": "self_reported"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "transcript"
+        ],
+        "title": "TranscriptView"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

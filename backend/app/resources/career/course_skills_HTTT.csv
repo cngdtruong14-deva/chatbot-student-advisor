@@ -1,0 +1,92 @@
+course_code,course_title,skill_id,skill_name,weight
+DC1TT44,Tin học cơ sở,SK17,Lập trình cơ bản (Python/Java/C#),0.3
+DC1TT44,Tin học cơ sở,SK15,Excel nâng cao,0.3
+DC1CB35,Tiếng Anh,SK26,Tiếng Anh chuyên ngành,0.3
+DC1TT77,Kỹ năng mềm,SK22,Giao tiếp,0.4
+DC1TT77,Kỹ năng mềm,SK24,Làm việc nhóm,0.4
+DC1TT77,Kỹ năng mềm,SK27,Quản lý thời gian,0.3
+DC1CB98,Làm việc nhóm và kỹ năng giao tiếp,SK22,Giao tiếp,0.5
+DC1CB98,Làm việc nhóm và kỹ năng giao tiếp,SK24,Làm việc nhóm,0.5
+DC1TT31,Kỹ thuật xây dựng và trình bày báo cáo,SK23,Thuyết trình,0.6
+DC1CB20,Lý thuyết xác suất – thống kê,SK14,Thống kê,0.9
+DC1CB20,Lý thuyết xác suất – thống kê,SK12,Phân tích dữ liệu,0.3
+DC1CB99,Phương pháp nghiên cứu khoa học,SK25,Giải quyết vấn đề,0.4
+DC1CB99,Phương pháp nghiên cứu khoa học,SK23,Thuyết trình,0.3
+DC1CB99,Phương pháp nghiên cứu khoa học,SK12,Phân tích dữ liệu,0.3
+DC2HT42,Toán học rời rạc,SK25,Giải quyết vấn đề,0.4
+DC2TT23,Ngôn ngữ lập trình C,SK17,Lập trình cơ bản (Python/Java/C#),0.7
+DC2TT22,Nhập môn Cơ sở dữ liệu,SK09,SQL,0.6
+DC2TT22,Nhập môn Cơ sở dữ liệu,SK10,Thiết kế cơ sở dữ liệu,0.7
+DC2HT12,Nguyên lý Hệ điều hành,SK03,Tư duy hệ thống (Systems Thinking),0.3
+DC2HT13,Nhập môn Mạng máy tính,SK19,Mạng máy tính,0.8
+DC2TT35,Lập trình hướng đối tượng C++,SK17,Lập trình cơ bản (Python/Java/C#),0.9
+DC2HT34,Lập trình trực quan C#,SK17,Lập trình cơ bản (Python/Java/C#),0.7
+DC2HT26,Cấu trúc dữ liệu và giải thuật,SK17,Lập trình cơ bản (Python/Java/C#),0.5
+DC2HT26,Cấu trúc dữ liệu và giải thuật,SK25,Giải quyết vấn đề,0.6
+DC3HT60,Phân tích và thiết kế hệ thống thông tin,SK04,Phân tích thiết kế hệ thống (UML/SA&D),1.0
+DC3HT60,Phân tích và thiết kế hệ thống thông tin,SK01,Phân tích yêu cầu nghiệp vụ (Requirements Analysis),0.7
+DC3HT60,Phân tích và thiết kế hệ thống thông tin,SK02,Mô hình hóa quy trình nghiệp vụ (BPMN),0.6
+DC2HT27,Lập trình Java cơ bản,SK17,Lập trình cơ bản (Python/Java/C#),0.8
+DC2TT24,Thương mại điện tử,SK18,Phát triển Web cơ bản,0.4
+DC2TT24,Thương mại điện tử,SK01,Phân tích yêu cầu nghiệp vụ (Requirements Analysis),0.2
+DC3HT31,Lập trình di động,SK17,Lập trình cơ bản (Python/Java/C#),0.5
+DC3HT31,Lập trình di động,SK18,Phát triển Web cơ bản,0.3
+DC3HT51,An toàn và bảo mật hệ thống thông tin,SK20,An toàn thông tin,0.9
+DC3HT51,An toàn và bảo mật hệ thống thông tin,SK07,Kiểm toán CNTT & Tuân thủ,0.3
+DC2HT36,Lập trình trên môi trường Web,SK18,Phát triển Web cơ bản,0.9
+DC2HT36,Lập trình trên môi trường Web,SK17,Lập trình cơ bản (Python/Java/C#),0.3
+DC3HT12,Trí tuệ nhân tạo,SK12,Phân tích dữ liệu,0.5
+DC3HT12,Trí tuệ nhân tạo,SK17,Lập trình cơ bản (Python/Java/C#),0.4
+DC2TT32,Điện toán đám mây,SK21,Điện toán đám mây,0.9
+DC2TT31,Phần mềm mã nguồn mở,SK17,Lập trình cơ bản (Python/Java/C#),0.3
+DC3HT21,Hệ quản trị cơ sở dữ liệu,SK11,Quản trị CSDL (backup/tuning/security),0.9
+DC3HT21,Hệ quản trị cơ sở dữ liệu,SK09,SQL,0.6
+DC3HT25,Lập trình Java nâng cao,SK17,Lập trình cơ bản (Python/Java/C#),0.8
+DC2HT38,Công nghệ phần mềm,SK04,Phân tích thiết kế hệ thống (UML/SA&D),0.5
+DC2HT38,Công nghệ phần mềm,SK05,Quản lý dự án CNTT,0.3
+DC2HT38,Công nghệ phần mềm,SK25,Giải quyết vấn đề,0.3
+DC3TT12,Kiến trúc và thiết kế phần mềm,SK04,Phân tích thiết kế hệ thống (UML/SA&D),0.7
+DC3HT16,Nhập môn Xử lý ảnh,SK12,Phân tích dữ liệu,0.4
+DC3HT16,Nhập môn Xử lý ảnh,SK17,Lập trình cơ bản (Python/Java/C#),0.3
+DC3TH17,Nhập môn Tương tác người - máy,SK22,Giao tiếp,0.3
+DC3TH17,Nhập môn Tương tác người - máy,SK18,Phát triển Web cơ bản,0.3
+DC3HT32,Quản lý dự án phần mềm,SK05,Quản lý dự án CNTT,1.0
+DC3HT32,Quản lý dự án phần mềm,SK27,Quản lý thời gian,0.4
+DC3HT18,Tiếng Anh chuyên ngành,SK26,Tiếng Anh chuyên ngành,0.7
+DC3HT41,Kiểm thử phần mềm,SK25,Giải quyết vấn đề,0.5
+DC3HT41,Kiểm thử phần mềm,SK04,Phân tích thiết kế hệ thống (UML/SA&D),0.3
+DC3HT22,Hệ trợ giúp quyết định,SK12,Phân tích dữ liệu,0.6
+DC3HT22,Hệ trợ giúp quyết định,SK14,Thống kê,0.3
+DC3HT22,Hệ trợ giúp quyết định,SK13,Trực quan hóa dữ liệu (Power BI/Tableau),0.3
+DC3HT23,Hệ cơ sở tri thức,SK12,Phân tích dữ liệu,0.4
+DC3HT42,Hệ thống hoạch định nguồn lực doanh nghiệp - ERP,SK06,Kiến thức ERP (SAP/Oracle/Odoo),1.0
+DC3HT42,Hệ thống hoạch định nguồn lực doanh nghiệp - ERP,SK08,Quản trị thay đổi (Change Management),0.3
+DC3HT42,Hệ thống hoạch định nguồn lực doanh nghiệp - ERP,SK01,Phân tích yêu cầu nghiệp vụ (Requirements Analysis),0.2
+DC3HT52,Đồ án Hệ thống thông tin,SK04,Phân tích thiết kế hệ thống (UML/SA&D),0.5
+DC3HT52,Đồ án Hệ thống thông tin,SK25,Giải quyết vấn đề,0.4
+DC3HT52,Đồ án Hệ thống thông tin,SK23,Thuyết trình,0.4
+DC3HT43,Hệ thống thông tin địa lý - GIS,SK12,Phân tích dữ liệu,0.4
+DC3HT43,Hệ thống thông tin địa lý - GIS,SK13,Trực quan hóa dữ liệu (Power BI/Tableau),0.4
+DC3HT46,Thiết kế mạng máy tính,SK19,Mạng máy tính,0.9
+DC3TT47,Quản trị mạng,SK19,Mạng máy tính,0.6
+DC3TT47,Quản trị mạng,SK11,Quản trị CSDL (backup/tuning/security),0.2
+DC3TT17,Big Data,SK16,ETL / Data Warehouse,0.7
+DC3TT17,Big Data,SK12,Phân tích dữ liệu,0.5
+DC3HT47,Cơ sở dữ liệu phân tán,SK10,Thiết kế cơ sở dữ liệu,0.5
+DC3HT47,Cơ sở dữ liệu phân tán,SK11,Quản trị CSDL (backup/tuning/security),0.5
+DC4HT23,Thực tập chuyên ngành,SK22,Giao tiếp,0.4
+DC4HT23,Thực tập chuyên ngành,SK24,Làm việc nhóm,0.4
+DC4HT24,Thực tập hệ thống thông tin,SK01,Phân tích yêu cầu nghiệp vụ (Requirements Analysis),0.4
+DC4HT24,Thực tập hệ thống thông tin,SK04,Phân tích thiết kế hệ thống (UML/SA&D),0.3
+DC4HT24,Thực tập hệ thống thông tin,SK22,Giao tiếp,0.3
+DC4HT25,Thực tập doanh nghiệp,SK22,Giao tiếp,0.4
+DC4HT25,Thực tập doanh nghiệp,SK24,Làm việc nhóm,0.4
+DC4HT25,Thực tập doanh nghiệp,SK05,Quản lý dự án CNTT,0.3
+DC4TH70,Thực tập tốt nghiệp,SK22,Giao tiếp,0.4
+DC4TH70,Thực tập tốt nghiệp,SK24,Làm việc nhóm,0.3
+DC4TH70,Thực tập tốt nghiệp,SK05,Quản lý dự án CNTT,0.3
+DC4TH70,Thực tập tốt nghiệp,SK01,Phân tích yêu cầu nghiệp vụ (Requirements Analysis),0.3
+DC4TH80,Đồ án tốt nghiệp,SK23,Thuyết trình,0.6
+DC4TH80,Đồ án tốt nghiệp,SK25,Giải quyết vấn đề,0.5
+DC4TH80,Đồ án tốt nghiệp,SK04,Phân tích thiết kế hệ thống (UML/SA&D),0.4
+DC4TH80,Đồ án tốt nghiệp,SK22,Giao tiếp,0.3

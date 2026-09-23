@@ -1,0 +1,8 @@
+# Human owner verified; invite teammates before adding their GitHub handles.
+# Workflow ownership only until GitHub required code-owner review is configured.
+* @cngdtruong14-deva
+/ops/ @cngdtruong14-deva
+/compose.yaml @cngdtruong14-deva
+/.github/ @cngdtruong14-deva
+/contracts/ @cngdtruong14-deva
+/packages/advisor_core/ @cngdtruong14-deva

@@ -1,0 +1,16 @@
+{
+  "dataset": "oulad",
+  "data_origin": "public_dataset",
+  "source_url": "https://research.stem.open.ac.uk/ouanalyse/dataset/",
+  "license": "CC-BY-4.0",
+  "target_id": "non_completion_at_end",
+  "cutoff_day": 28,
+  "seed": 42,
+  "sample_students": 2000,
+  "split_rule": "group_hash_70_15_15",
+  "calibration_method": "none",
+  "threshold_selection": "max_f1_on_dev",
+  "source_commit": null,
+  "source_commit_approved": false,
+  "limitations": ["Student-disjoint group split; not a future-presentation generalization test", "Day 28 is a candidate pending real-data audit approval", "No institutional or DEMO academic profiles"]
+}
