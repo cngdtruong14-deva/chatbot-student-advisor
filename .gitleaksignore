@@ -1,0 +1,4 @@
+# Reviewed false positives from the initial public candidate commit.
+# Both findings are immutable Docker image tags, not credentials.
+bab7c50713f5262140a5a0969a90a7b5ccee68ec:ops/capstone-v4.runtime.compose.yaml:generic-api-key:5
+bab7c50713f5262140a5a0969a90a7b5ccee68ec:ops/capstone-v4.runtime.compose.yaml:generic-api-key:7
