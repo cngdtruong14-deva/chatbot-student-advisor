@@ -15,6 +15,7 @@ class GeminiGatewayTests(unittest.TestCase):
             "model": "fixture-model",
             "temperature": 0,
             "max_tokens": 1200,
+            "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": "bounded system"},
                 {"role": "user", "content": "QUESTION: synthetic\nEVIDENCE: []"},
@@ -59,6 +60,9 @@ class GeminiGatewayTests(unittest.TestCase):
             extra = self.envelope()
             extra["stream"] = True
             cases.append(extra)
+            invalid_format = self.envelope()
+            invalid_format["response_format"] = {"type": "json_schema"}
+            cases.append(invalid_format)
             for value in cases:
                 with self.subTest(value=value), self.assertRaises(GatewayError):
                     validate_envelope(value)

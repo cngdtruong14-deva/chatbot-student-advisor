@@ -61,13 +61,16 @@ def check_rate_limit() -> None:
 
 
 def validate_envelope(body: object) -> dict:
-    if not isinstance(body, dict) or set(body) - {"model", "temperature", "max_tokens", "messages"}:
+    if not isinstance(body, dict) or set(body) - {"model", "temperature", "max_tokens", "messages", "response_format"}:
         raise GatewayError(400, "INVALID_GENERATION_ENVELOPE")
     if body.get("model") != required("GEMINI_MODEL") or body.get("temperature") != 0:
         raise GatewayError(400, "MODEL_OR_TEMPERATURE_NOT_ALLOWED")
     max_tokens = body.get("max_tokens")
     if not isinstance(max_tokens, int) or not 1 <= max_tokens <= MAX_OUTPUT_TOKENS:
         raise GatewayError(400, "INVALID_OUTPUT_TOKEN_LIMIT")
+    response_format = body.get("response_format")
+    if response_format is not None and response_format != {"type": "json_object"}:
+        raise GatewayError(400, "INVALID_RESPONSE_FORMAT")
     messages = body.get("messages")
     if not isinstance(messages, list) or len(messages) != MAX_MESSAGES:
         raise GatewayError(400, "INVALID_MESSAGE_SHAPE")

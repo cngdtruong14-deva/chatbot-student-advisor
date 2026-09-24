@@ -142,6 +142,22 @@ class LLMRuntimeTests(unittest.TestCase):
         self.assertEqual(calls[1]['max_tokens'],2000)
         self.assertIn('Trả lời súc tích',calls[1]['messages'][0]['content'])
 
+    def test_requests_json_object_mode_for_provider_envelope(self):
+        calls=[]
+        valid=json.dumps({'answer':'x','claims':[{'text':'x','citation_ids':['chunk-1']}]})
+        def respond(request):
+            calls.append(json.loads(request.content))
+            return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':valid}}]})
+        result=OpenAICompatibleProvider(self.config(),httpx.MockTransport(respond)).generate('x',[match()])
+        self.assertEqual(result['status'],'completed')
+        self.assertEqual(calls[0]['response_format'], {'type':'json_object'})
+
+    def test_accepts_text_parts_from_compatible_provider(self):
+        content=json.dumps({'answer':'x','claims':[{'text':'x','citation_ids':['chunk-1']}]})
+        payload={'choices':[{'finish_reason':'stop','message':{'content':[{'type':'text','text':content}]}}]}
+        result=OpenAICompatibleProvider(self.config(),self.transport(payload)).generate('x',[match()])
+        self.assertEqual(result['status'],'completed')
+
     def test_length_truncation_twice_fails_with_safe_reason(self):
         payload={'choices':[{'finish_reason':'length','message':{'content':'{'}}]}
         provider=OpenAICompatibleProvider(self.config(),self.transport(payload))

@@ -133,7 +133,11 @@ class OpenAICompatibleProvider:
         if not evidence:
             return {"status": "insufficient_evidence", "answer": None, "claims": []}
         allowed = {item["citation_id"] for item in evidence}
-        body = {"model": self.config.model, "temperature": 0, "max_tokens": MAX_OUTPUT_TOKENS, "messages": [
+        body = {"model": self.config.model, "temperature": 0, "max_tokens": MAX_OUTPUT_TOKENS,
+                # Gemini's OpenAI-compatible endpoint accepts JSON-object mode.  The
+                # prompt still defines the envelope and the validator below remains
+                # authoritative for citations and abstentions.
+                "response_format": {"type": "json_object"}, "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": "QUESTION:\n" + question + "\n\nEVIDENCE:\n" + json.dumps(evidence, ensure_ascii=False)},
         ]}
@@ -189,6 +193,17 @@ class OpenAICompatibleProvider:
             if choice.get('finish_reason') == 'content_filter':
                 return {"status": "provider_error", "answer": None, "claims": [], "failure_reason": "CONTENT_FILTERED"}
             raw_content = (choice.get("message") or {}).get("content") or ""
+            # OpenAI-compatible providers normally return a string, but some
+            # gateways expose content parts.  Flatten text parts before parsing so
+            # a valid JSON envelope is not rejected merely because of its wrapper.
+            if isinstance(raw_content, list):
+                raw_content = "".join(
+                    part if isinstance(part, str) else str(part.get("text", ""))
+                    for part in raw_content
+                    if isinstance(part, (str, dict))
+                )
+            if not isinstance(raw_content, str):
+                raw_content = ""
             if not raw_content.strip():
                 # Gemini returned an empty body (e.g. safety filter silent refusal
                 # or unsupported json_object mode). Treat as insufficient evidence.
