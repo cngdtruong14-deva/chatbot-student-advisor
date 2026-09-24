@@ -14,7 +14,16 @@ with create_engine(url).connect() as connection:
     # The compatibility role is deliberately NOLOGIN; Azure runtime uses the
     # managed server administrator configured by IaC.
     with connection.begin():
-        connection.execute(text("CREATE SCHEMA IF NOT EXISTS app"))
+        connection.execute(text("""
+            DO $$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'app')
+                 AND has_database_privilege(current_user, current_database(), 'CREATE') THEN
+                EXECUTE 'CREATE SCHEMA app';
+              END IF;
+            END
+            $$
+        """))
         connection.execute(text("""
             DO $$
             BEGIN
