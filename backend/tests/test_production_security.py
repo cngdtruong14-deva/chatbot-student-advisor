@@ -39,6 +39,17 @@ class ProductionConfigurationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "GEMINI_API_KEY"):
                 validate_production_environment()
 
+    def test_enabled_generation_accepts_https_gateway_without_direct_gemini_key(self):
+        valid = {
+            **self.valid,
+            "RAG_LLM_ENABLED": "1",
+            "RAG_LLM_PROVIDER": "gemini",
+            "RAG_LLM_GATEWAY_URL": "https://gateway.example/v1",
+            "RAG_LLM_GATEWAY_SECRET": "x" * 32,
+        }
+        with patch.dict(os.environ, valid, clear=True):
+            validate_production_environment()
+
     def test_request_id_is_bounded(self):
         self.assertEqual(request_id("client-id_123456"), "client-id_123456")
         self.assertNotEqual(request_id("bad value"), "bad value")

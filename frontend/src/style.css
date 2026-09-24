@@ -674,8 +674,11 @@ td b {
   line-height: 1.22;
 }
 .intro h1 em {
-  font-family: Georgia, serif;
+  /* Georgia italic may split Vietnamese precomposed glyphs on Windows. */
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-style: italic;
   font-weight: 400;
+  letter-spacing: -0.02em;
   color: #bcdca7;
 }
 .intro > p:not(.eyebrow) {

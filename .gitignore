@@ -27,3 +27,9 @@ scratch/
 docs.zip
 isolated-output.txt
 .DS_Store
+.copilot-azure/
+.azure/
+infra/main.json
+infra/gateway.json
+infra/main.parameters.json
+infra/container-environment.whatif.parameters.json

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import logging
 import os
@@ -51,6 +52,7 @@ class ProviderConfig:
     timeout_seconds: float
     enabled: bool = False
     prompt_version: str = ""
+    gateway_mode: bool = False
 
     @property
     def configured(self) -> bool:
@@ -64,17 +66,33 @@ def config_from_env() -> ProviderConfig:
         timeout = 20
     provider = os.environ.get("RAG_LLM_PROVIDER", "").strip().lower()
     gemini = provider == "gemini"
+    gateway_url = os.environ.get("RAG_LLM_GATEWAY_URL", "").strip().rstrip("/")
+    gateway_secret = os.environ.get("RAG_LLM_GATEWAY_SECRET", "").strip()
     return ProviderConfig(
         # Gemini's documented OpenAI-compatible endpoint is used only when the
         # owner explicitly enables it and supplies a local model ID/key.
-        base_url=(os.environ.get("RAG_LLM_BASE_URL", "").strip().rstrip("/") or
+        base_url=(gateway_url or os.environ.get("RAG_LLM_BASE_URL", "").strip().rstrip("/") or
                   ("https://generativelanguage.googleapis.com/v1beta/openai" if gemini else "")),
         model=os.environ.get("RAG_LLM_MODEL", "").strip(),
-        api_key=(os.environ.get("GEMINI_API_KEY", "").strip() if gemini else os.environ.get("RAG_LLM_API_KEY", "").strip()),
+        api_key=(gateway_secret if gateway_url else
+                 (os.environ.get("GEMINI_API_KEY", "").strip() if gemini else os.environ.get("RAG_LLM_API_KEY", "").strip())),
         timeout_seconds=timeout,
         enabled=os.environ.get("RAG_LLM_ENABLED", "0").strip().lower() in {"1", "true", "yes"},
         prompt_version=os.environ.get("RAG_LLM_PROMPT_VERSION", "").strip(),
+        gateway_mode=bool(gateway_url),
     )
+
+
+def _signed_gateway_headers(secret: str, payload: bytes, timestamp: int | None = None) -> dict[str, str]:
+    timestamp = int(time.time()) if timestamp is None else timestamp
+    stamp = str(timestamp)
+    signature = hmac.new(secret.encode("utf-8"), stamp.encode("ascii") + b"\n" + payload,
+                         hashlib.sha256).hexdigest()
+    return {
+        "Content-Type": "application/json",
+        "X-Gateway-Timestamp": stamp,
+        "X-Gateway-Signature": signature,
+    }
 
 
 class OpenAICompatibleProvider:
@@ -114,7 +132,13 @@ class OpenAICompatibleProvider:
                 response = None
                 for generation_attempt in range(2):
                     for rate_attempt in range(4):
-                        response = client.post(self.config.base_url + "/chat/completions", headers={"Authorization": "Bearer " + self.config.api_key}, json=body)
+                        payload_bytes = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+                        headers = (_signed_gateway_headers(self.config.api_key, payload_bytes)
+                                   if self.config.gateway_mode
+                                   else {"Authorization": "Bearer " + self.config.api_key,
+                                         "Content-Type": "application/json"})
+                        response = client.post(self.config.base_url + "/chat/completions",
+                                               headers=headers, content=payload_bytes)
                         if response.status_code == 429 and rate_attempt < 3:
                             time.sleep(3.0 * (rate_attempt + 1))
                             continue

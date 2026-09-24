@@ -214,8 +214,12 @@ def _provider_identity() -> dict[str, str | bool]:
     model = os.environ.get("RAG_LLM_MODEL", "").strip()
     prompt_version = os.environ.get("RAG_LLM_PROMPT_VERSION", "").strip()
     enabled = os.environ.get("RAG_LLM_ENABLED", "0").strip().lower() in {"1", "true", "yes"}
+    gateway_configured = bool(
+        os.environ.get("RAG_LLM_GATEWAY_URL", "").strip()
+        and os.environ.get("RAG_LLM_GATEWAY_SECRET", "").strip()
+    )
     key_present = bool(
-        os.environ.get("GEMINI_API_KEY", "").strip()
+        gateway_configured or os.environ.get("GEMINI_API_KEY", "").strip()
         if provider == "gemini"
         else os.environ.get("RAG_LLM_API_KEY", "").strip()
     )

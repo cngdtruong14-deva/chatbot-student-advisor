@@ -71,8 +71,13 @@ def validate_production_environment() -> None:
         errors.append("ADVISOR_TEST_DATABASE must not be set in production")
     if os.environ.get("RAG_LLM_ENABLED", "0") == "1":
         provider = os.environ.get("RAG_LLM_PROVIDER", "").strip().lower()
-        if provider != "gemini" or not os.environ.get("GEMINI_API_KEY"):
-            errors.append("enabled production generation requires provider=gemini and GEMINI_API_KEY")
+        gateway_url = os.environ.get("RAG_LLM_GATEWAY_URL", "").strip()
+        gateway_secret = os.environ.get("RAG_LLM_GATEWAY_SECRET", "").strip()
+        direct_key = os.environ.get("GEMINI_API_KEY", "").strip()
+        if provider != "gemini" or not ((gateway_url and gateway_secret) or direct_key):
+            errors.append("enabled production generation requires provider=gemini and either gateway credentials or GEMINI_API_KEY")
+        if gateway_url and (urlsplit(gateway_url).scheme != "https" or not urlsplit(gateway_url).netloc):
+            errors.append("RAG_LLM_GATEWAY_URL must be an absolute HTTPS URL")
     if errors:
         raise RuntimeError("PRODUCTION_CONFIGURATION_INVALID: " + "; ".join(errors))
 

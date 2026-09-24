@@ -67,6 +67,27 @@ class LLMRuntimeTests(unittest.TestCase):
         self.assertTrue(config.configured)
         self.assertEqual(config.base_url, "https://generativelanguage.googleapis.com/v1beta/openai")
 
+    def test_gateway_configuration_signs_exact_payload_without_gemini_key(self):
+        calls=[]
+        content=json.dumps({'answer':'supported','claims':[{'text':'supported','citation_ids':['chunk-1']}]})
+        def respond(request):
+            calls.append(request)
+            self.assertNotIn('authorization', request.headers)
+            self.assertRegex(request.headers['x-gateway-timestamp'], r'^\d+$')
+            self.assertRegex(request.headers['x-gateway-signature'], r'^[a-f0-9]{64}$')
+            return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':content}}]})
+        with patch.dict(os.environ, {
+            'RAG_LLM_PROVIDER':'gemini','RAG_LLM_ENABLED':'1','RAG_LLM_MODEL':'owner-selected',
+            'RAG_LLM_GATEWAY_URL':'https://gateway.invalid/v1',
+            'RAG_LLM_GATEWAY_SECRET':'gateway-fixture','RAG_LLM_PROMPT_VERSION':'v3',
+        }, clear=True):
+            config=config_from_env()
+        self.assertTrue(config.gateway_mode)
+        self.assertEqual(config.api_key,'gateway-fixture')
+        result=OpenAICompatibleProvider(config,httpx.MockTransport(respond)).generate('x',[match()],prompt_version='v3')
+        self.assertEqual(result['status'],'completed')
+        self.assertEqual(len(calls),1)
+
     def test_malformed_json_container_fails_closed(self):
         for value in ('[]', 'null', '42'):
             provider = OpenAICompatibleProvider(self.config(), self.transport({'choices': [{'message': {'content': value}}]}))
