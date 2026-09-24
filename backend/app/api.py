@@ -639,14 +639,15 @@ def allow_corpus(user, corpus_scope):
         return
     if user['role'] == 'admin':
         return
-    if user['role'] == 'student':
-        with transaction() as db:
-            demo = one(db, "SELECT id FROM app.students WHERE user_id=:uid", uid=user['id'])
-        if demo:
-            return
+    # Every authenticated student may read the published UTT corpus.  The
+    # retrieval layer still limits an unlinked account to documents explicitly
+    # marked for every major/cohort; personal academic tools remain protected
+    # by own_student().  The test corpus is intentionally admin-only.
+    if corpus_scope == 'utt_corpus' and user['role'] == 'student':
+        return
     if corpus_scope == 'utt_corpus':
-        raise APIError('FORBIDDEN', 403, 'Kho UTT-Corpus chỉ dành cho admin và sinh viên đã liên kết hồ sơ.')
-    raise APIError('FORBIDDEN', 403, 'Kho UTT-test chỉ dành cho admin và sinh viên demo đã liên kết hồ sơ.')
+        raise APIError('FORBIDDEN', 403, 'Kho UTT-Corpus chỉ dành cho admin và tài khoản sinh viên đã đăng nhập.')
+    raise APIError('FORBIDDEN', 403, 'Kho UTT-test chỉ dành cho quản trị viên.')
 
 
 @router.post("/knowledge/search")

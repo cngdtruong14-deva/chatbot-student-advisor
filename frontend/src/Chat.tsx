@@ -174,7 +174,7 @@ export function Chat({ isAdmin = false, isStudent = false, studentProfileLinked 
   const [feedback, setFeedback] = useState<Record<string, FeedbackState>>({});
   const [selectedEvidenceTurnId, setSelectedEvidenceTurnId] = useState('');
   const [corpusScope, setCorpusScope] = useState<'demo_academic' | 'utt_test' | 'utt_corpus'>(
-    (isAdmin || (isStudent && studentProfileLinked)) ? 'utt_corpus' : 'demo_academic'
+    (isAdmin || isStudent) ? 'utt_corpus' : 'demo_academic'
   );
   useEffect(() => { let alive = true; api<{ items: Session[] }>('/chat/sessions').then(r => { if (alive) setSessions(r.items); }).catch(e => { if (alive) setError(e.message); }); return () => { alive = false; }; }, []);
   async function open(id: string) {
@@ -237,7 +237,7 @@ export function Chat({ isAdmin = false, isStudent = false, studentProfileLinked 
     </div>
     <div className="chat-workspace">
     <div className="chat-main">
-      {isStudent && !studentProfileLinked && <p role="status" className="error">Tài khoản chưa liên kết hồ sơ học vụ. {PRODUCT_CONFIG.ACCOUNTS.UNLINKED_NOTICE}</p>}
+      {isStudent && !studentProfileLinked && <p role="status" className="error">Tài khoản chưa liên kết hồ sơ học vụ. Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung; bảng điểm, GPA cá nhân và tài liệu theo ngành/khóa chỉ mở sau khi hồ sơ được liên kết. {PRODUCT_CONFIG.ACCOUNTS.UNLINKED_NOTICE}</p>}
       {turns.length === 0 && (
       <div style={{ margin: '14px 0', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         <small style={{ display: 'block', marginBottom: '8px', color: '#475569', fontWeight: 600 }}>Gợi ý câu hỏi học vụ thường gặp trong phạm vi pilot (bấm để hỏi ngay):</small>
@@ -307,7 +307,7 @@ export function Chat({ isAdmin = false, isStudent = false, studentProfileLinked 
 
       <section className="chat-side-section" aria-labelledby="chat-source-title">
         <h3 id="chat-source-title">Tài liệu truy xuất</h3>
-        {(isAdmin || (isStudent && studentProfileLinked)) && !sid && <label>Kho tri thức<select aria-label="Kho tài liệu" value={corpusScope} disabled={busy || !!pending} onChange={e => setCorpusScope(e.target.value as 'demo_academic' | 'utt_test' | 'utt_corpus')}><option value="utt_corpus">Tài liệu UTT · kho pilot</option><option value="demo_academic">Học vụ mẫu</option><option value="utt_test">Tài liệu thử nghiệm</option></select></label>}
+        {(isAdmin || isStudent) && !sid && <label>Kho tri thức<select aria-label="Kho tài liệu" value={corpusScope} disabled={busy || !!pending} onChange={e => setCorpusScope(e.target.value as 'demo_academic' | 'utt_test' | 'utt_corpus')}><option value="utt_corpus">Tài liệu UTT · kho pilot</option><option value="demo_academic">Học vụ mẫu</option>{isAdmin && <option value="utt_test">Tài liệu thử nghiệm</option>}</select></label>}
         {corpusScope === 'utt_test' && <p className="error">Nguồn thử nghiệm; cần đối chiếu văn bản gốc.</p>}
         {corpusScope === 'utt_corpus' && <p className="chat-source-disclosure"><strong>Nguồn hiện tại: tài liệu UTT.</strong> {PRODUCT_CONFIG.CORPUS_DISCLOSURE} {PRODUCT_CONFIG.PILOT_DISCLOSURE}</p>}
         {selectedEvidenceCards.length === 0

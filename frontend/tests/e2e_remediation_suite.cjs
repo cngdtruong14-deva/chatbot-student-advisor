@@ -296,16 +296,16 @@ async function getTestToken(email) {
     await page.getByRole('button', { name: 'Vào không gian học tập →' }).click();
     await page.getByText('Tài khoản chưa liên kết hồ sơ học vụ').waitFor({ timeout: 10000 });
     await page.getByRole('button', { name: 'Trợ lý học tập' }).click();
-    await page.getByText('Tài khoản chưa liên kết hồ sơ học vụ. Chat chỉ dùng kho học vụ demo').waitFor();
+    await page.getByText(/Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung/).waitFor();
 
     const unlinkedSearchRes = await fetch('http://localhost:8000/api/v1/knowledge/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${unlinkedAuth.accessToken}` },
       body: JSON.stringify({ query: 'Quy chế', corpus_scope: 'utt_corpus' }),
     });
-    const unlinkedBlocked = unlinkedSearchRes.status === 403;
+    const unlinkedGeneralAllowed = unlinkedSearchRes.status === 200;
     await page.screenshot({ path: path.join(SCREENSHOT_DIR, 'e02_unlinked_account.png') });
-    record('E02', 'Tài khoản chưa liên kết', unlinkedBlocked, 'Thông báo rõ, không lỗi sập trang, UTT bị chặn (403)');
+    record('E02', 'Tài khoản chưa liên kết', unlinkedGeneralAllowed, 'Tra cứu UTT phạm vi chung; công cụ học vụ cá nhân vẫn bị chặn');
 
     // -------------------------------------------------------------
     // E10: Student B truy phiên ngoài quyền (cross-tenant isolation)

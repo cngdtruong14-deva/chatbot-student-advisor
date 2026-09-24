@@ -124,8 +124,9 @@ def test_gate_2_search_access_control():
     allow_corpus(admin, "utt_test")
     print("PASS: utt_test scope allowed for admin")
 
-    allow_corpus(demo_student, "utt_test")
-    print("PASS: utt_test scope allowed for linked synthetic demo student")
+    for user, label in ((demo_student, "linked student"), (real_student, "student"), (unlinked_student, "unlinked student")):
+        allow_corpus(user, "utt_corpus")
+        print(f"PASS: utt_corpus general access allowed for {label}")
 
     try:
         allow_corpus(unlinked_student, "utt_test")
@@ -134,7 +135,7 @@ def test_gate_2_search_access_control():
         assert exc.code == "FORBIDDEN" and exc.status == 403
     print("PASS: utt_test scope rejected for unlinked student (FORBIDDEN 403)")
 
-    for user, label in ((real_student, "student without synthetic profile"), (advisor, "advisor")):
+    for user, label in ((demo_student, "linked student"), (real_student, "student"), (advisor, "advisor")):
         try:
             allow_corpus(user, "utt_test")
             assert False, f"utt_test must be rejected for {label}"
@@ -232,4 +233,3 @@ def run_all():
 
 if __name__ == "__main__":
     run_all()
-

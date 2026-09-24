@@ -162,11 +162,12 @@ def activate(version_id):
 
 
 def resolve_actor_scope(actor):
-    """Resolve a student's document scope server-side, or fail closed.
+    """Resolve a student's document scope server-side.
 
-    The returned sentinel is intentionally distinct from ``None``.  ``None``
-    is a valid all-scope query for trusted admin/evaluator flows; an unlinked or
-    incomplete student profile must not accidentally receive that access.
+    ``None`` remains a trusted unscoped admin/evaluator query.  An unlinked or
+    incomplete student receives the literal ``all`` scope, which matches only
+    documents published for every major/cohort.  A linked academic profile may
+    additionally receive documents for its own major and cohort.
     """
     if not isinstance(actor, dict) or actor.get('role') != 'student':
         return {'major': None, 'cohort': None, 'resolved': True}
@@ -178,13 +179,10 @@ def resolve_actor_scope(actor):
             profile = one(db, '''SELECT s.cohort,c.major
                 FROM app.students s JOIN app.curricula c ON c.id=s.curriculum_id
                 WHERE s.user_id=:uid''', uid=user_id)
-            if not profile:
-                profile = one(db, '''SELECT cohort,major FROM app.onboarding_profiles
-                    WHERE user_id=:uid''', uid=user_id)
     except Exception:
         profile = None
     if not profile or not str(profile.get('major') or '').strip() or not str(profile.get('cohort') or '').strip():
-        return {'major': UNRESOLVED_SCOPE, 'cohort': UNRESOLVED_SCOPE, 'resolved': False}
+        return {'major': 'all', 'cohort': 'all', 'resolved': False}
     return {'major': profile['major'], 'cohort': profile['cohort'], 'resolved': True}
 
 

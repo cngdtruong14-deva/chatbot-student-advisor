@@ -84,7 +84,7 @@ class DocumentDBTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'INTERVAL_CONFLICT'): knowledge.activate(second['id'])
         self.assertTrue(knowledge.search('Zebrafixture')['citations'])
 
-    def test_utt_test_corpus_is_labeled_isolated_and_demo_students_allowed(self):
+    def test_utt_test_corpus_is_labeled_isolated_and_admin_only(self):
         payload = self.document(title='UTT test only', source='drive:test-file-id',
                                 content='UTTTEST quy định thử nghiệm.', corpus_scope='utt_test')
         registered = self.client.post('/api/v1/admin/documents', json=payload)
@@ -111,13 +111,9 @@ class DocumentDBTests(unittest.TestCase):
         demo = one(self.conn, "SELECT user_id FROM app.students WHERE data_origin='synthetic' LIMIT 1")
         self.assertIsNotNone(demo, 'Seeded demo student required for this integration test')
         self.user={'id':demo['user_id'],'role':'student'}
-        result=self.client.post('/api/v1/knowledge/search',json={'query':'UTTTEST','corpus_scope':'utt_test'})
-        self.assertEqual(result.status_code,200,result.text)
-        self.assertTrue(result.json()['data']['test_only'])
-        self.assertTrue(result.json()['data']['warning'])
-        cid=result.json()['data']['citations'][0]['chunk_id']
-        self.assertEqual(self.client.get('/api/v1/knowledge/chunks/'+cid+'?corpus_scope=utt_test').status_code,200)
-        self.assertEqual(self.client.post('/api/v1/chat/sessions',json={'corpus_scope':'utt_test'}).status_code,200)
+        self.assertEqual(self.client.post('/api/v1/knowledge/search',json={'query':'UTTTEST','corpus_scope':'utt_test'}).status_code,403)
+        self.assertEqual(self.client.post('/api/v1/chat/sessions',json={'corpus_scope':'utt_test'}).status_code,403)
+        self.assertEqual(self.client.post('/api/v1/chat/sessions',json={'corpus_scope':'utt_corpus'}).status_code,200)
         self.assertEqual(self.client.post('/api/v1/admin/documents',json=payload).status_code,403)
 
     def test_export_contains_only_active_approved_chunks_and_hashes(self):

@@ -110,7 +110,7 @@ Mã SV: SV002
 
 
     def test_accessible_chunks_scope_filtering_and_retriever(self):
-        from app.knowledge import retrieve_candidates
+        from app.knowledge import _scope_matches, retrieve_candidates
         
         test_chunks = [
             {"chunk_id": "c_all", "text": "Quy định chung toàn trường", "major": "all", "cohort": "all", "scope": "utt_corpus", "section": "Điều 1", "valid_from": "2026-01-01", "valid_until": "9999-12-31"},
@@ -118,6 +118,12 @@ Mã SV: SV002
             {"chunk_id": "c_httt", "text": "Quy chế đồ án chuyên ngành HTTT", "major": "HTTT", "cohort": "all", "scope": "utt_corpus", "section": "Điều 3", "valid_from": "2026-01-01", "valid_until": "9999-12-31"},
             {"chunk_id": "c_k75", "text": "Quy định học phí từ khóa 75", "major": "all", "cohort": "K75+", "scope": "utt_corpus", "section": "Điều 4", "valid_from": "2026-01-01", "valid_until": "9999-12-31"},
         ]
+
+        # An unlinked authenticated student is represented by the literal
+        # ``all`` scope: general documents match, major/cohort-specific ones do not.
+        self.assertTrue(_scope_matches('all', 'all'))
+        self.assertFalse(_scope_matches('CNTT', 'all'))
+        self.assertFalse(_scope_matches('K75+', 'all', cohort_mode=True))
 
         # Test lexical search
         lex = retrieve_candidates("CNTT", test_chunks, method="lexical", top_k=2, corpus_scope="utt_corpus")
@@ -133,4 +139,3 @@ Mã SV: SV002
 
 if __name__ == "__main__":
     unittest.main()
-

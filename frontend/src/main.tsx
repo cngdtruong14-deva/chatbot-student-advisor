@@ -802,7 +802,6 @@ function App() {
           {page === "documents" && (
             <Documents
               isAdmin={user.role === 'admin'}
-              studentProfileLinked={!!profile}
             />
           )}
 

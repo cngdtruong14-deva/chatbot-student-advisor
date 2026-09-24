@@ -62,7 +62,7 @@ class CatalogImportsTests(unittest.TestCase):
         denied = self.client.get("/api/v1/admin/majors", headers=student_headers)
         self.assertEqual(denied.status_code, 403)
 
-    def test_unlinked_pilot_profile_supplies_rag_scope(self):
+    def test_unlinked_account_keeps_general_rag_scope_until_academic_link(self):
         with transaction() as db:
             user = one(db, """SELECT u.* FROM app.users u WHERE u.role='student' AND u.is_active
                 AND NOT EXISTS(SELECT 1 FROM app.students s WHERE s.user_id=u.id)
@@ -74,7 +74,7 @@ class CatalogImportsTests(unittest.TestCase):
             json={"display_name": "Pilot HTTT", "major": "Hệ thống thông tin", "cohort": "K74"})
         self.assertEqual(saved.status_code, 200, saved.text)
         self.assertEqual(resolve_actor_scope({"id": user["id"], "role": "student"}),
-                         {"major": "Hệ thống thông tin", "cohort": "K74", "resolved": True})
+                         {"major": "all", "cohort": "all", "resolved": False})
 
     def test_courses_import_dry_run_and_commit(self):
         token = self._admin_token()

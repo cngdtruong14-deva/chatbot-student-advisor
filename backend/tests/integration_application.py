@@ -38,7 +38,8 @@ def main():
     unlinked = login("unlinked@demo.local")
     unlinked_profile = client.get("/api/v1/students/me", headers=unlinked)
     check(unlinked_profile.status_code == 409 and unlinked_profile.json()["error"]["code"] == "STUDENT_PROFILE_NOT_LINKED", "unlinked student receives explicit profile status")
-    check(client.post('/api/v1/chat/sessions', headers=unlinked, json={"corpus_scope":"utt_test"}).status_code == 403, "unlinked student denied UTT")
+    check(client.post('/api/v1/chat/sessions', headers=unlinked, json={"corpus_scope":"utt_corpus"}).status_code == 200, "unlinked student can read general UTT corpus")
+    check(client.post('/api/v1/chat/sessions', headers=unlinked, json={"corpus_scope":"utt_test"}).status_code == 403, "student denied admin-only UTT test corpus")
     me = client.get("/api/v1/students/me", headers=student).json()["data"]
     me2 = client.get("/api/v1/students/me", headers=student2).json()["data"]
     summary_url = "/api/v1/students/" + me["id"] + "/academic-summary"

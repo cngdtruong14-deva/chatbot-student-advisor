@@ -11,7 +11,7 @@ const TOPIC_SUGGESTIONS = [
   'Quy định về học lại và đăng ký học phần',
 ];
 
-export function Documents({ isAdmin = false, studentProfileLinked = false }: { isAdmin?: boolean; studentProfileLinked?: boolean }) {
+export function Documents({ isAdmin = false }: { isAdmin?: boolean }) {
   // Admin state
   const [items, setItems] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -61,10 +61,9 @@ export function Documents({ isAdmin = false, studentProfileLinked = false }: { i
     setError('');
     setSearched(true);
     try {
-      const scope = (isAdmin || studentProfileLinked) ? 'utt_corpus' : 'demo_academic';
       const res = await api('/knowledge/search', {
         query: text,
-        corpus_scope: scope,
+        corpus_scope: 'utt_corpus',
       });
       setSearchResults(res.citations || []);
     } catch (e) {
