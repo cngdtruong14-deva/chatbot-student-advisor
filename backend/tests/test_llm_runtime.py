@@ -69,7 +69,7 @@ class LLMRuntimeTests(unittest.TestCase):
         def respond(request):
             calls.append(request)
             return httpx.Response(200,json={'choices':[{'message':{'content':'{"answer":null,"claims":[]}'}}]})
-        with patch('app.llm_runtime.time.monotonic', side_effect=[0,0,4,4]):
+        with patch('app.llm_runtime.time.monotonic', side_effect=[0,0,0,0,0,4,4]):
             result=OpenAICompatibleProvider(self.config(),httpx.MockTransport(respond)).generate('x',[match()])
         self.assertEqual(result['status'],'timeout')
         self.assertEqual(len(calls),1)
@@ -119,6 +119,19 @@ class LLMRuntimeTests(unittest.TestCase):
         result=OpenAICompatibleProvider(config,httpx.MockTransport(respond)).generate('x',[match()],prompt_version='v3')
         self.assertEqual(result['status'],'completed')
         self.assertEqual(len(calls),1)
+
+    def test_gateway_diagnostic_headers_do_not_change_answer(self):
+        content=json.dumps({'answer':'supported','claims':[{'text':'supported','citation_ids':['chunk-1']}]})
+        def respond(request):
+            return httpx.Response(200,headers={
+                'X-Gateway-Request-ID':request.headers['x-request-id'],
+                'X-Gateway-Upstream-Ms':'123',
+            },json={'choices':[{'finish_reason':'stop','message':{'content':content}}]})
+        provider=OpenAICompatibleProvider(self.config(),httpx.MockTransport(respond))
+        with self.assertLogs('app.llm_runtime',level='INFO') as logs:
+            result=provider.generate('x',[match()])
+        self.assertEqual(result['status'],'completed')
+        self.assertIn('upstream_ms=123','\n'.join(logs.output))
 
     def test_malformed_json_container_fails_closed(self):
         for value in ('[]', 'null', '42'):

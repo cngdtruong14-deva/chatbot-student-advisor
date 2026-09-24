@@ -8,6 +8,7 @@ param identityId string
 param identityClientId string
 param keyVaultUri string
 param geminiModel string
+param appInsightsResourceId string
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
   name: storageAccountName
@@ -37,6 +38,7 @@ module app 'br/public:avm/res/web/site:0.15.1' = {
       systemAssigned: true
       userAssignedResourceIds: [ identityId ]
     }
+    appInsightResourceId: appInsightsResourceId
     functionAppConfig: {
       deployment: {
         storage: {
@@ -50,7 +52,13 @@ module app 'br/public:avm/res/web/site:0.15.1' = {
       }
       scaleAndConcurrency: {
         instanceMemoryMB: 512
-        maximumInstanceCount: 1
+        maximumInstanceCount: 2
+        alwaysReady: [
+          {
+            name: 'http'
+            instanceCount: 1
+          }
+        ]
       }
       runtime: {
         name: 'python'

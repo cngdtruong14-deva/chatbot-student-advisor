@@ -7,6 +7,7 @@ param planName string = 'plan-advisor-gateway-5c4702'
 param storageAccountName string = 'stadvgtw5c4702'
 param keyVaultName string = 'kv-advis-staging-5c4702'
 param geminiModel string = 'gemini-3.5-flash-lite'
+param appInsightsName string = 'appi-advisor-staging-5c4702'
 
 var deploymentContainerName = 'deploymentpackage'
 var tags = {
@@ -17,6 +18,10 @@ var tags = {
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: keyVaultName
+}
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: appInsightsName
 }
 
 module identity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
@@ -85,6 +90,7 @@ module gateway './gateway/function-app.bicep' = {
     identityId: identity.outputs.resourceId
     identityClientId: identity.outputs.clientId
     geminiModel: geminiModel
+    appInsightsResourceId: appInsights.id
     keyVaultUri: keyVault.properties.vaultUri
     tags: tags
   }

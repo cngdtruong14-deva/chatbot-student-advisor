@@ -82,3 +82,42 @@ def validate_envelope(body: object) -> dict:
         if not item["content"] or len(item["content"]) > MAX_MESSAGE_CHARS:
             raise GatewayError(400, "INVALID_MESSAGE_SIZE")
     return body
+
+
+def compact_upstream_response(body: object) -> dict:
+    """Return only the OpenAI-compatible fields consumed by the backend.
+
+    Gemini may add provider-specific metadata such as thought summaries.  The
+    gateway is a trust boundary, so those fields must not be forwarded to the
+    application or make the cross-region response larger than necessary.
+    """
+    if not isinstance(body, dict):
+        raise GatewayError(502, "INVALID_UPSTREAM_RESPONSE")
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        raise GatewayError(502, "INVALID_UPSTREAM_RESPONSE")
+    choice = choices[0]
+    message = choice.get("message")
+    if not isinstance(message, dict):
+        raise GatewayError(502, "INVALID_UPSTREAM_RESPONSE")
+    content = message.get("content")
+    if not isinstance(content, (str, list)):
+        raise GatewayError(502, "INVALID_UPSTREAM_RESPONSE")
+    result = {
+        "choices": [{
+            "finish_reason": choice.get("finish_reason"),
+            "index": choice.get("index", 0),
+            "message": {"role": message.get("role", "assistant"), "content": content},
+        }]
+    }
+    usage = body.get("usage")
+    if isinstance(usage, dict):
+        result["usage"] = {
+            key: value for key, value in usage.items()
+            if key in {"prompt_tokens", "completion_tokens", "total_tokens"}
+            and isinstance(value, int)
+        }
+    for key in ("id", "model", "object", "created"):
+        if isinstance(body.get(key), (str, int)):
+            result[key] = body[key]
+    return result

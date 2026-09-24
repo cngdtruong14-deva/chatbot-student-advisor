@@ -159,6 +159,7 @@ class OpenAICompatibleProvider:
         try:
             with httpx.Client(timeout=self.config.timeout_seconds, transport=self.transport) as client:
                 response = None
+                request_phase = 'not_started'
                 for generation_attempt in range(2):
                     for rate_attempt in range(self.config.rate_limit_retries + 1):
                         remaining = deadline - time.monotonic()
@@ -170,8 +171,23 @@ class OpenAICompatibleProvider:
                                    else {"Authorization": "Bearer " + self.config.api_key,
                                          "Content-Type": "application/json"})
                         headers['X-Request-ID'] = request_id
-                        response = client.post(self.config.base_url + "/chat/completions",
-                                               headers=headers, content=payload_bytes, timeout=remaining)
+                        attempt_started = time.monotonic()
+                        request_phase = 'connect_or_gateway_queue'
+                        with client.stream(
+                            "POST", self.config.base_url + "/chat/completions",
+                            headers=headers, content=payload_bytes, timeout=remaining,
+                        ) as response:
+                            headers_ms = round((time.monotonic() - attempt_started) * 1000)
+                            request_phase = 'response_body'
+                            response.read()
+                            request_phase = 'response_complete'
+                            total_ms = round((time.monotonic() - attempt_started) * 1000)
+                        logger.info(
+                            'rag_gateway_response request_id=%s http_status=%d headers_ms=%d total_ms=%d upstream_ms=%s response_bytes=%d',
+                            request_id, response.status_code, headers_ms, total_ms,
+                            response.headers.get('x-gateway-upstream-ms', 'unknown'),
+                            len(response.content),
+                        )
                         if response.status_code >= 400:
                             logger.warning('rag_generation_http request_id=%s http_status=%d generation_attempt=%d rate_attempt=%d',
                                            request_id, response.status_code, generation_attempt, rate_attempt)
@@ -268,7 +284,9 @@ class OpenAICompatibleProvider:
                 raise ValueError("GENERATED_CLAIMS_TOO_LARGE")
             return {"status": "completed", "answer": safe_answer, "claims": normalized, "usage": dict(self.last_usage)}
         except httpx.TimeoutException as exc:
-            logger.warning('rag_generation_timeout request_id=%s exception_type=%s', request_id, type(exc).__name__)
+            logger.warning('rag_generation_timeout request_id=%s exception_type=%s phase=%s',
+                           request_id, type(exc).__name__,
+                           locals().get('request_phase', 'provider_call'))
             return {"status": "timeout", "answer": None, "claims": [], "failure_reason": "PROVIDER_TIMEOUT"}
         except (httpx.HTTPError, KeyError, IndexError, TypeError, AttributeError, ValueError, json.JSONDecodeError) as exc:
             reason = "PROVIDER_RESPONSE_INVALID" if not isinstance(exc, httpx.HTTPError) else "PROVIDER_TRANSPORT_ERROR"

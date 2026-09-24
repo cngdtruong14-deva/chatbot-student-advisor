@@ -12,15 +12,15 @@ import azure.functions as func
 import httpx
 
 from gateway_core import GatewayError, MAX_BODY_BYTES, REQUEST_ID_RE, UPSTREAM_URL
-from gateway_core import check_rate_limit, required, validate_envelope, verify_signature
+from gateway_core import compact_upstream_response, check_rate_limit, required, validate_envelope, verify_signature
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 logger = logging.getLogger(__name__)
 
 
-def response(status: int, payload: dict) -> func.HttpResponse:
+def response(status: int, payload: dict, headers: dict[str, str] | None = None) -> func.HttpResponse:
     return func.HttpResponse(json.dumps(payload, ensure_ascii=False), status_code=status,
-                             mimetype="application/json")
+                             mimetype="application/json", headers=headers)
 
 
 @app.route(route="healthz", methods=["GET"])
@@ -58,21 +58,47 @@ async def chat_completions(req: func.HttpRequest) -> func.HttpResponse:
         async with asyncio.timeout(timeout):
             async with httpx.AsyncClient(timeout=timeout) as client:
                 upstream = await client.post(UPSTREAM_URL, headers=headers, json=envelope)
+        upstream_ms = round((time.monotonic() - started) * 1000)
         logger.log(logging.WARNING if upstream.status_code >= 400 else logging.INFO,
-                   'gemini_upstream request_id=%s http_status=%d elapsed_ms=%d',
-                   request_id, upstream.status_code, round((time.monotonic() - started) * 1000))
+                   'gemini_upstream request_id=%s http_status=%d elapsed_ms=%d response_bytes=%d',
+                   request_id, upstream.status_code, upstream_ms, len(upstream.content))
         try:
             result = upstream.json()
         except ValueError:
             logger.warning('gemini_upstream_invalid_json request_id=%s http_status=%d',
                            request_id, upstream.status_code)
-            return response(502, {"error": {"code": "INVALID_UPSTREAM_RESPONSE"}})
-        return response(upstream.status_code, result)
+            return response(502, {"error": {"code": "INVALID_UPSTREAM_RESPONSE"}}, {
+                "Cache-Control": "no-store", "X-Gateway-Request-ID": request_id,
+                "X-Gateway-Upstream-Ms": str(upstream_ms),
+            })
+        if upstream.status_code < 400:
+            try:
+                result = compact_upstream_response(result)
+            except GatewayError as exc:
+                logger.warning('gemini_upstream_invalid_shape request_id=%s error_code=%s',
+                               request_id, exc.code)
+                return response(exc.status_code, {"error": {"code": exc.code}}, {
+                    "Cache-Control": "no-store", "X-Gateway-Request-ID": request_id,
+                    "X-Gateway-Upstream-Ms": str(upstream_ms),
+                })
+        return response(upstream.status_code, result, {
+            "Cache-Control": "no-store",
+            "X-Gateway-Request-ID": request_id,
+            "X-Gateway-Upstream-Ms": str(upstream_ms),
+        })
     except (httpx.TimeoutException, TimeoutError) as exc:
+        elapsed_ms = round((time.monotonic() - started) * 1000)
         logger.warning('gemini_upstream_timeout request_id=%s exception_type=%s elapsed_ms=%d timeout_seconds=%s',
-                       request_id, type(exc).__name__, round((time.monotonic() - started) * 1000), timeout)
-        return response(504, {"error": {"code": "UPSTREAM_TIMEOUT"}})
+                       request_id, type(exc).__name__, elapsed_ms, timeout)
+        return response(504, {"error": {"code": "UPSTREAM_TIMEOUT"}}, {
+            "Cache-Control": "no-store", "X-Gateway-Request-ID": request_id,
+            "X-Gateway-Upstream-Ms": str(elapsed_ms),
+        })
     except httpx.HTTPError as exc:
+        elapsed_ms = round((time.monotonic() - started) * 1000)
         logger.warning('gemini_upstream_transport request_id=%s exception_type=%s elapsed_ms=%d',
-                       request_id, type(exc).__name__, round((time.monotonic() - started) * 1000))
-        return response(502, {"error": {"code": "UPSTREAM_TRANSPORT_ERROR"}})
+                       request_id, type(exc).__name__, elapsed_ms)
+        return response(502, {"error": {"code": "UPSTREAM_TRANSPORT_ERROR"}}, {
+            "Cache-Control": "no-store", "X-Gateway-Request-ID": request_id,
+            "X-Gateway-Upstream-Ms": str(elapsed_ms),
+        })

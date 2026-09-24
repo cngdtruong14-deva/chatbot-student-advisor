@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from gateway_function.gateway_core import GatewayError, validate_envelope, verify_signature
+from gateway_function.gateway_core import GatewayError, compact_upstream_response, validate_envelope, verify_signature
 
 
 class GeminiGatewayTests(unittest.TestCase):
@@ -66,6 +66,35 @@ class GeminiGatewayTests(unittest.TestCase):
             for value in cases:
                 with self.subTest(value=value), self.assertRaises(GatewayError):
                     validate_envelope(value)
+
+    def test_compacts_provider_specific_response(self):
+        compact = compact_upstream_response({
+            "id": "response-1",
+            "model": "fixture-model",
+            "provider_private": "must-not-cross-boundary",
+            "choices": [{
+                "index": 0,
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": '{"answer":"ok","claims":[]}',
+                    "extra_content": {"thinking": "must-not-cross-boundary"},
+                },
+            }],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14,
+                      "provider_detail": 99},
+        })
+        self.assertNotIn("provider_private", compact)
+        self.assertNotIn("extra_content", compact["choices"][0]["message"])
+        self.assertEqual(compact["usage"], {
+            "prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14,
+        })
+
+    def test_rejects_invalid_success_response_shape(self):
+        for value in (None, {}, {"choices": []}, {"choices": [{}]}):
+            with self.subTest(value=value), self.assertRaises(GatewayError) as raised:
+                compact_upstream_response(value)
+            self.assertEqual(raised.exception.status_code, 502)
 
 
 if __name__ == "__main__":

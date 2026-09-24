@@ -63,6 +63,18 @@ class GatewayRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('exception_type=ConnectError', logs)
 
     async def test_success(self):
-        result, logs = await self.invoke(httpx.Response(200, json={'choices': []}))
+        result, logs = await self.invoke(httpx.Response(200, json={
+            'choices': [{
+                'index': 0,
+                'finish_reason': 'stop',
+                'message': {'role': 'assistant', 'content': '{"answer":null,"claims":[]}',
+                            'extra_content': {'private': 'not-forwarded'}},
+            }],
+            'usage': {'prompt_tokens': 10, 'completion_tokens': 3, 'total_tokens': 13},
+        }))
         self.assertEqual(result.status_code, 200)
         self.assertIn('http_status=200', logs)
+        payload = json.loads(result.get_body())
+        self.assertNotIn('extra_content', payload['choices'][0]['message'])
+        self.assertEqual(result.headers['X-Gateway-Request-ID'], 'trace-fixture-01')
+        self.assertRegex(result.headers['X-Gateway-Upstream-Ms'], r'^\d+$')
