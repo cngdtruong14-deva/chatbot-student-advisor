@@ -1,0 +1,193 @@
+name: Deploy Azure Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY_STAGING to deploy the current main commit
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: azure-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'DEPLOY_STAGING'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RESOURCE_GROUP: rg-advisor-staging-5c4702
+      CONTAINER_APP: ca-advisor-staging-5c4702
+      ACR_NAME: cradvisorstaging5c4702
+      PUBLIC_ORIGIN: https://cngdtruong.id.vn
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a successful release gate for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release-gate.yml/runs?per_page=100" |
+              jq -r --arg sha "$GITHUB_SHA" '
+                .workflow_runs[]
+                | select(
+                    .head_sha == $sha
+                    and .event == "workflow_dispatch"
+                    and .status == "completed"
+                    and .conclusion == "success"
+                  )
+                | .id
+              ' | head -n 1
+          )"
+          test -n "$run_id"
+          echo "Release gate PASS: ${run_id}"
+
+      - name: Validate OIDC configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${{ vars.AZURE_CLIENT_ID }}"
+          test -n "${{ vars.AZURE_TENANT_ID }}"
+          test -n "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Azure login with GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --only-show-errors
+
+      - name: Build and push immutable images
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA:0:7}"
+          login_server="$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query loginServer -o tsv)"
+          az acr login --name "$ACR_NAME" --only-show-errors
+
+          api_image="${login_server}/advisor-api:${short_sha}"
+          web_image="${login_server}/advisor-web:${short_sha}"
+
+          docker build --pull=false --file backend/Dockerfile --tag "$api_image" .
+          docker build --pull=false --file frontend/Dockerfile --tag "$web_image" frontend
+          docker push "$api_image"
+          docker push "$web_image"
+
+          {
+            echo "API_IMAGE=$api_image"
+            echo "WEB_IMAGE=$web_image"
+            echo "REVISION_SUFFIX=deploy-${short_sha}"
+          } >> "$GITHUB_ENV"
+
+      - name: Deploy one revision and verify health
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          before="$RUNNER_TEMP/containerapp-before.json"
+          candidate="$RUNNER_TEMP/containerapp-candidate.json"
+          rollback="$RUNNER_TEMP/containerapp-rollback.json"
+          updated=0
+
+          restore_previous_images() {
+            echo "Verification failed; restoring the previous images."
+            jq --arg suffix "rollback-${GITHUB_RUN_ID}" '
+              .properties.template.revisionSuffix = $suffix
+            ' "$before" > "$rollback"
+            az containerapp update \
+              --name "$CONTAINER_APP" \
+              --resource-group "$RESOURCE_GROUP" \
+              --yaml "$rollback" \
+              --output none || true
+          }
+
+          on_error() {
+            if [ "$updated" -eq 1 ]; then
+              restore_previous_images
+            fi
+          }
+          trap on_error ERR
+
+          az containerapp show \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --output json > "$before"
+
+          jq -e '[.properties.template.containers[].name] | sort == ["api", "web"]' "$before" >/dev/null
+
+          jq \
+            --arg api "$API_IMAGE" \
+            --arg web "$WEB_IMAGE" \
+            --arg suffix "$REVISION_SUFFIX" '
+              .properties.template.revisionSuffix = $suffix
+              | .properties.template.containers |= map(
+                  if .name == "api" then .image = $api
+                  elif .name == "web" then .image = $web
+                  else .
+                  end
+                )
+            ' "$before" > "$candidate"
+
+          az containerapp update \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --yaml "$candidate" \
+            --output none
+          updated=1
+
+          revision="$(az containerapp show \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query properties.latestRevisionName -o tsv)"
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            state="$(az containerapp revision show \
+              --name "$CONTAINER_APP" \
+              --resource-group "$RESOURCE_GROUP" \
+              --revision "$revision" \
+              --query properties.healthState -o tsv 2>/dev/null || true)"
+            echo "Revision ${revision}: ${state:-Pending} (${attempt}/30)"
+            if [ "$state" = "Healthy" ]; then
+              ready=1
+              break
+            fi
+            if [ "$state" = "Unhealthy" ] || [ "$state" = "Failed" ]; then
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/healthz" >/dev/null
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/health/live" >/dev/null
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/health/ready" >/dev/null
+
+          updated=0
+          trap - ERR
+          echo "DEPLOYED_REVISION=$revision" >> "$GITHUB_ENV"
+
+      - name: Deployment receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          az containerapp show \
+            --name "$CONTAINER_APP" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query '{latestRevision:properties.latestRevisionName,readyRevision:properties.latestReadyRevisionName,containers:properties.template.containers[].{name:name,image:image}}' \
+            --output json
+          echo "Application: $PUBLIC_ORIGIN"
