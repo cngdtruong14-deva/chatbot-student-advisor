@@ -84,7 +84,11 @@ var plainApiEnv = [
   }
   {
     name: 'RAG_LLM_TIMEOUT_SECONDS'
-    value: '20'
+    value: '12'
+  }
+  {
+    name: 'RAG_LLM_RATE_LIMIT_RETRIES'
+    value: '1'
   }
   {
     name: 'RAG_LLM_PROMPT_VERSION'

@@ -271,7 +271,7 @@ export function Chat({ isAdmin = false, isStudent = false, studentProfileLinked 
         const controlled = cards.some(isControlledEvidence);
         const sourceCount = cards.filter(card => card.type === 'evidence').reduce((total, card) => total + (Array.isArray(card.data?.citations) ? card.data.citations.length : 0), 0);
         return <div key={t.client_turn_id}><article className="bubble user"><small>BẠN</small><p>{t.content}</p></article><article className="bubble assistant">
-          <small>CỐ VẤN AI · {controlled ? PRODUCT_CONFIG.CHAT.SOURCE_TITLE : t.result.status === 'completed' ? PRODUCT_CONFIG.CHAT.ANSWER_FALLBACK_LABEL : t.result.status === 'failed' ? 'Dịch vụ tạm thời không khả dụng' : PRODUCT_CONFIG.CHAT.INSUFFICIENT_EVIDENCE_LABEL}</small>
+          <small>CỐ VẤN AI · {controlled ? PRODUCT_CONFIG.CHAT.SOURCE_TITLE : ['timeout', 'rate_limited', 'authentication_error', 'provider_unavailable', 'provider_error', 'insufficient_evidence'].includes(t.result.provider_status || '') ? 'Trích đoạn trực tiếp' : t.result.status === 'completed' ? PRODUCT_CONFIG.CHAT.ANSWER_FALLBACK_LABEL : t.result.status === 'failed' ? 'Dịch vụ tạm thời không khả dụng' : PRODUCT_CONFIG.CHAT.INSUFFICIENT_EVIDENCE_LABEL}</small>
           <p>{t.result.answer}</p>
           {cards.filter(card => card.type !== 'evidence').map((card, i) => <ChatCard key={i} card={card} />)}
           {sourceCount > 0 && <button type="button" className="source-link" aria-label={`Xem ${sourceCount} nguồn tham khảo của câu trả lời`} onClick={() => setSelectedEvidenceTurnId(t.client_turn_id)}>{sourceCount} nguồn tham khảo →</button>}

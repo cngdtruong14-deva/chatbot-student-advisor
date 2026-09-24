@@ -51,7 +51,8 @@ RAG_LLM_ENABLED=1
 RAG_LLM_BASE_URL=https://provider.example/v1
 RAG_LLM_MODEL=approved-model-name
 RAG_LLM_API_KEY=<provider-key-from-secret-store>
-RAG_LLM_TIMEOUT_SECONDS=20
+RAG_LLM_TIMEOUT_SECONDS=12
+RAG_LLM_RATE_LIMIT_RETRIES=1
 ```
 
 Khởi động lại API bằng `docker compose up -d --wait api web`, rồi kiểm tra `/api/v1/system/capabilities` sau khi đăng nhập. `llm=configured` chỉ xác nhận đủ cấu hình; cần một smoke test thật và benchmark riêng trước khi gọi provider/model là đã sẵn sàng cho Capstone.

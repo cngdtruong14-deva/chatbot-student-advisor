@@ -12,7 +12,9 @@ from dataclasses import dataclass
 
 import httpx
 
-MAX_PROMPT_EVIDENCE_CHARS = 14_000
+# Keep the provider request small enough for a serverless Gemini gateway. The
+# citation allow-list is still built from exactly the evidence sent below.
+MAX_PROMPT_EVIDENCE_CHARS = 10_000
 MAX_ANSWER_CHARS = 4_000
 MAX_CLAIMS = 12
 MAX_OUTPUT_TOKENS = 1200
@@ -53,6 +55,7 @@ class ProviderConfig:
     enabled: bool = False
     prompt_version: str = ""
     gateway_mode: bool = False
+    rate_limit_retries: int = 1
 
     @property
     def configured(self) -> bool:
@@ -61,9 +64,15 @@ class ProviderConfig:
 
 def config_from_env() -> ProviderConfig:
     try:
-        timeout = min(max(float(os.environ.get("RAG_LLM_TIMEOUT_SECONDS", "20")), 1), 60)
+        # A failed provider should return the cited evidence promptly. Deployments
+        # may raise this explicitly when their gateway has a slower SLA.
+        timeout = min(max(float(os.environ.get("RAG_LLM_TIMEOUT_SECONDS", "12")), 5), 60)
     except ValueError:
-        timeout = 20
+        timeout = 12
+    try:
+        rate_limit_retries = min(max(int(os.environ.get("RAG_LLM_RATE_LIMIT_RETRIES", "1")), 0), 2)
+    except ValueError:
+        rate_limit_retries = 1
     provider = os.environ.get("RAG_LLM_PROVIDER", "").strip().lower()
     gemini = provider == "gemini"
     gateway_url = os.environ.get("RAG_LLM_GATEWAY_URL", "").strip().rstrip("/")
@@ -80,6 +89,7 @@ def config_from_env() -> ProviderConfig:
         enabled=os.environ.get("RAG_LLM_ENABLED", "0").strip().lower() in {"1", "true", "yes"},
         prompt_version=os.environ.get("RAG_LLM_PROMPT_VERSION", "").strip(),
         gateway_mode=bool(gateway_url),
+        rate_limit_retries=rate_limit_retries,
     )
 
 
@@ -131,7 +141,7 @@ class OpenAICompatibleProvider:
             with httpx.Client(timeout=self.config.timeout_seconds, transport=self.transport) as client:
                 response = None
                 for generation_attempt in range(2):
-                    for rate_attempt in range(4):
+                    for rate_attempt in range(self.config.rate_limit_retries + 1):
                         payload_bytes = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
                         headers = (_signed_gateway_headers(self.config.api_key, payload_bytes)
                                    if self.config.gateway_mode
@@ -139,8 +149,8 @@ class OpenAICompatibleProvider:
                                          "Content-Type": "application/json"})
                         response = client.post(self.config.base_url + "/chat/completions",
                                                headers=headers, content=payload_bytes)
-                        if response.status_code == 429 and rate_attempt < 3:
-                            time.sleep(3.0 * (rate_attempt + 1))
+                        if response.status_code == 429 and rate_attempt < self.config.rate_limit_retries:
+                            time.sleep(2.0 * (rate_attempt + 1))
                             continue
                         break
                     if response.status_code >= 400:

@@ -2,7 +2,7 @@
 import unittest
 from contextlib import nullcontext
 from unittest.mock import patch
-from app.chat_service import dispatch, intent
+from app.chat_service import dispatch, intent, retrieval_fallback_answer
 
 
 class Stage4RoutingTests(unittest.TestCase):
@@ -97,3 +97,25 @@ class Stage4RoutingTests(unittest.TestCase):
         self.assertEqual(intent('Nếu 12 tín tới đều A- thì sao?'), 'simulate')
         result = dispatch('Nếu 12 tín tới đều A- thì sao?', self.user)
         self.assertEqual(result['status'], 'needs_clarification')
+
+
+class RetrievalFallbackTests(unittest.TestCase):
+    def test_provider_failure_keeps_short_direct_rag_excerpts(self):
+        citations = [
+            {'title': 'Quy chế đào tạo', 'locator_label': 'Điều 7',
+             'excerpt': 'Sinh viên được xem xét theo điều kiện công bố trong quy chế.'},
+            {'title': 'Hướng dẫn học vụ', 'locator_label': 'Trang 3',
+             'excerpt': 'Liên hệ đơn vị phụ trách khi cần xác nhận chính thức.'},
+        ]
+        answer = retrieval_fallback_answer(citations, 'timeout')
+        self.assertIn('Gemini chưa phản hồi kịp', answer)
+        self.assertIn('[1] Quy chế đào tạo — Điều 7:', answer)
+        self.assertIn('Sinh viên được xem xét', answer)
+        self.assertIn('chưa tự kết luận', answer)
+
+    def test_provider_failure_excerpt_is_bounded(self):
+        answer = retrieval_fallback_answer([{
+            'title': 'Nguồn', 'locator_label': 'Trang 1', 'excerpt': 'x ' * 500,
+        }], 'provider_error')
+        self.assertLess(len(answer), 600)
+        self.assertTrue(answer.endswith('…'))

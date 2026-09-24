@@ -108,6 +108,34 @@ def policy_anchor(text):
     return None
 
 
+def retrieval_fallback_answer(citations, generation_status):
+    """Return safe, extractive evidence while the semantic provider is unavailable.
+
+    This deliberately does not join or reinterpret claims. The user receives a
+    short, labelled excerpt list and can open the cited source card. It prevents
+    a provider timeout from looking like a chatbot crash while preserving the
+    fail-closed rule for unsupported conclusions.
+    """
+    status_label = {
+        'timeout': 'Gemini chưa phản hồi kịp',
+        'rate_limited': 'Gemini đang quá tải',
+        'authentication_error': 'Dịch vụ diễn đạt chưa xác thực được',
+        'provider_unavailable': 'Dịch vụ diễn đạt chưa sẵn sàng',
+        'provider_error': 'Dịch vụ diễn đạt chưa trả về định dạng hợp lệ',
+    }.get(generation_status, 'Dịch vụ diễn đạt chưa trả lời')
+    lines = [f'{status_label}. Tôi chưa tự kết luận; dưới đây là trích đoạn trực tiếp để đối chiếu:']
+    for index, citation in enumerate((citations or [])[:3], start=1):
+        excerpt = ' '.join(str(citation.get('excerpt') or '').split())
+        if not excerpt:
+            continue
+        if len(excerpt) > 360:
+            excerpt = excerpt[:357].rsplit(' ', 1)[0] + '…'
+        title = citation.get('title') or citation.get('source') or 'Tài liệu UTT'
+        locator = citation.get('locator_label') or citation.get('section') or 'trích đoạn'
+        lines.append(f'[{index}] {title} — {locator}: {excerpt}')
+    return '\n'.join(lines)
+
+
 def _active_context(previous):
     context = (previous or {}).get('context')
     if not isinstance(context, dict):
@@ -393,7 +421,14 @@ def dispatch(message, user, previous=None, corpus_scope='demo_academic'):
 
         topic_names = {'scholarship': 'học bổng', 'career': 'hướng nghiệp và kỹ năng',
                        'partner_jobs': 'đối tác, thực tập hoặc việc làm', 'university_policy': 'học vụ'}
-        answer_text = evidence['answer'] if answered else (fallback or (
+        extractive_fallback = (
+            retrieval_fallback_answer(evidence['citations'], evidence['generation_status'])
+            if evidence.get('citations') and evidence.get('generation_status') in {
+                'timeout', 'rate_limited', 'authentication_error', 'provider_unavailable',
+                'provider_error', 'insufficient_evidence'
+            } else None
+        )
+        answer_text = evidence['answer'] if answered else (extractive_fallback or fallback or (
             'Tìm thấy trích đoạn liên quan, nhưng chưa đủ để khẳng định câu trả lời.' if evidence['citations']
             else f'Chưa có bằng chứng về {topic_names[topic]} trong các tài liệu đã được admin kích hoạt.'))
         if answered and evidence.get('rag_mode') == 'approved_grounded_capstone_high_stakes':
@@ -418,6 +453,8 @@ def dispatch(message, user, previous=None, corpus_scope='demo_academic'):
             answer=answer_text,
             citations=evidence['citations'], provider_status=evidence['generation_status'],
             cards=[{'type': 'evidence', 'data': evidence}])
+        if extractive_fallback:
+            result['response_mode'] = 'retrieval_fallback'
         remaining = int(memory_context.get('turns_left', CONTEXT_MAX_TURNS + 1)) - 1 if memory_context else CONTEXT_MAX_TURNS
         if anchor and remaining > 0:
             result['context'] = _context_payload('knowledge_search', mode='memory', topic=topic,

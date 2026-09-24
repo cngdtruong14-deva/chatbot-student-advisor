@@ -66,6 +66,18 @@ class LLMRuntimeTests(unittest.TestCase):
             config = config_from_env()
         self.assertTrue(config.configured)
         self.assertEqual(config.base_url, "https://generativelanguage.googleapis.com/v1beta/openai")
+        self.assertEqual(config.timeout_seconds, 12)
+        self.assertEqual(config.rate_limit_retries, 1)
+
+    def test_rate_limit_retry_budget_is_bounded(self):
+        calls = []
+        def respond(request):
+            calls.append(request)
+            return httpx.Response(429, json={'error': 'busy'})
+        provider = OpenAICompatibleProvider(self.config(), httpx.MockTransport(respond))
+        result = provider.generate('x', [match()])
+        self.assertEqual(result['status'], 'rate_limited')
+        self.assertEqual(len(calls), 2)
 
     def test_gateway_configuration_signs_exact_payload_without_gemini_key(self):
         calls=[]

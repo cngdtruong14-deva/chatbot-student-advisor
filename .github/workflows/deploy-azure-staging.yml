@@ -140,6 +140,20 @@ jobs:
                   else .
                   end
                 )
+              | .properties.template.containers |= map(
+                  if .name == "api" then
+                    .env = ((.env // [])
+                      | map(
+                          if .name == "RAG_LLM_TIMEOUT_SECONDS" then .value = "12"
+                          elif .name == "RAG_LLM_RATE_LIMIT_RETRIES" then .value = "1"
+                          else .
+                          end
+                        )
+                      | if any(.[]; .name == "RAG_LLM_TIMEOUT_SECONDS") then . else . + [{"name":"RAG_LLM_TIMEOUT_SECONDS","value":"12"}] end
+                      | if any(.[]; .name == "RAG_LLM_RATE_LIMIT_RETRIES") then . else . + [{"name":"RAG_LLM_RATE_LIMIT_RETRIES","value":"1"}] end)
+                  else .
+                  end
+                )
             ' "$before" > "$candidate"
 
           az containerapp update \
