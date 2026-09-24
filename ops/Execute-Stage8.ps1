@@ -19,7 +19,9 @@ $compose = Join-Path $root 'ops/stage8.compose.yaml'
 function New-Secret([int]$Bytes = 32) {
     $data = New-Object byte[] $Bytes
     $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
-    try { $rng.GetBytes($data); [Convert]::ToBase64String($data) }
+    # Hex avoids platform-specific .env parsing edge cases around Base64
+    # padding and punctuation while retaining the full random entropy.
+    try { $rng.GetBytes($data); [Convert]::ToHexString($data).ToLowerInvariant() }
     finally { $rng.Dispose() }
 }
 function Get-FreePort {
@@ -74,8 +76,14 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Web image build failed' }
     }
 
-    Invoke-Compose @('up', '-d', '--wait', '--wait-timeout', "$TimeoutSec") *>&1 |
-        Tee-Object -FilePath (Join-Path $evidence 'compose-up.log')
+    # Start in deterministic phases so a migration failure is streamed into
+    # the release evidence instead of being hidden behind `compose up --wait`.
+    Invoke-Compose @('up', '-d', '--wait', '--wait-timeout', "$TimeoutSec", 'db') *>&1 |
+        Tee-Object -FilePath (Join-Path $evidence 'compose-db.log')
+    Invoke-Compose @('up', '--no-deps', '--abort-on-container-exit', '--exit-code-from', 'migrate', 'migrate') *>&1 |
+        Tee-Object -FilePath (Join-Path $evidence 'migration.log')
+    Invoke-Compose @('up', '-d', '--wait', '--wait-timeout', "$TimeoutSec", 'api', 'web') *>&1 |
+        Tee-Object -FilePath (Join-Path $evidence 'compose-app.log')
     Write-Meta 'Disposable stack healthy'
 
     & docker compose --project-name $project -f $compose --env-file $envFile exec -T `
