@@ -65,7 +65,9 @@ jobs:
       - name: Python syntax gate
         run: python -m compileall -q backend/app backend/tests gateway_function packages/advisor_core/src ml/scripts ops/build_release_manifest.py
       - name: Gemini gateway boundary tests
-        run: python -m unittest gateway_function.tests.test_gateway_core
+        run: |
+          python -m pip install -r gateway_function/requirements.txt
+          python -m unittest discover -s gateway_function/tests -v
       - name: Create ephemeral configuration
         shell: pwsh
         run: |

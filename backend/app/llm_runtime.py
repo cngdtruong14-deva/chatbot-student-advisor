@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from dataclasses import dataclass
 
 import httpx
@@ -116,6 +117,20 @@ class OpenAICompatibleProvider:
 
     def generate(self, question: str, matches: list[dict], *, prompt_version: str | None = None,
                  _abstention_retry: bool = False) -> dict:
+        started = time.monotonic()
+        request_id = uuid.uuid4().hex
+        result = self._generate(question, matches, prompt_version=prompt_version,
+                                _abstention_retry=_abstention_retry, request_id=request_id,
+                                deadline=started + self.config.timeout_seconds)
+        logger.log(logging.INFO if result['status'] == 'completed' else logging.WARNING,
+                   'rag_generation_result request_id=%s status=%s failure_reason=%s elapsed_ms=%d',
+                   request_id, result['status'], result.get('failure_reason', 'none'),
+                   round((time.monotonic() - started) * 1000))
+        return result
+
+    def _generate(self, question: str, matches: list[dict], *, prompt_version: str | None = None,
+                  _abstention_retry: bool = False, request_id: str, deadline: float) -> dict:
+        self.last_usage = {}
         if not self.config.configured:
             return {"status": "provider_unavailable", "answer": None, "claims": []}
         if prompt_version is not None and (not self.config.prompt_version or prompt_version != self.config.prompt_version):
@@ -146,15 +161,25 @@ class OpenAICompatibleProvider:
                 response = None
                 for generation_attempt in range(2):
                     for rate_attempt in range(self.config.rate_limit_retries + 1):
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise httpx.ReadTimeout('Generation budget exhausted')
                         payload_bytes = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
                         headers = (_signed_gateway_headers(self.config.api_key, payload_bytes)
                                    if self.config.gateway_mode
                                    else {"Authorization": "Bearer " + self.config.api_key,
                                          "Content-Type": "application/json"})
+                        headers['X-Request-ID'] = request_id
                         response = client.post(self.config.base_url + "/chat/completions",
-                                               headers=headers, content=payload_bytes)
+                                               headers=headers, content=payload_bytes, timeout=remaining)
+                        if response.status_code >= 400:
+                            logger.warning('rag_generation_http request_id=%s http_status=%d generation_attempt=%d rate_attempt=%d',
+                                           request_id, response.status_code, generation_attempt, rate_attempt)
                         if response.status_code == 429 and rate_attempt < self.config.rate_limit_retries:
-                            time.sleep(2.0 * (rate_attempt + 1))
+                            delay = 2.0 * (rate_attempt + 1)
+                            if deadline - time.monotonic() <= delay:
+                                break
+                            time.sleep(delay)
                             continue
                         break
                     if response.status_code >= 400:
@@ -179,6 +204,8 @@ class OpenAICompatibleProvider:
                 return {"status": "authentication_error", "answer": None, "claims": [], "failure_reason": "PROVIDER_AUTHENTICATION_FAILED"}
             if response.status_code == 429:
                 return {"status": "rate_limited", "answer": None, "claims": [], "failure_reason": "PROVIDER_RATE_LIMITED"}
+            if response.status_code in (408, 504):
+                return {"status": "timeout", "answer": None, "claims": [], "failure_reason": "PROVIDER_HTTP_TIMEOUT"}
             if response.status_code >= 400:
                 return {"status": "provider_error", "answer": None, "claims": [], "failure_reason": "PROVIDER_HTTP_ERROR"}
             payload = response.json()
@@ -222,8 +249,8 @@ class OpenAICompatibleProvider:
                     # same frozen evidence supporting a cited answer. Retry exactly
                     # once with the identical prompt/evidence. The second null still
                     # fails closed; no local answer is synthesized.
-                    return self.generate(question, matches, prompt_version=prompt_version,
-                                         _abstention_retry=True)
+                    return self._generate(question, matches, prompt_version=prompt_version,
+                                          _abstention_retry=True, request_id=request_id, deadline=deadline)
                 return {"status": "insufficient_evidence", "answer": None, "claims": []}
             if not isinstance(answer, str) or not answer.strip() or len(answer) > MAX_ANSWER_CHARS or not isinstance(claims, list) or not claims or len(claims) > MAX_CLAIMS:
                 raise ValueError("INVALID_GENERATION_SCHEMA")
@@ -240,10 +267,14 @@ class OpenAICompatibleProvider:
             if len(safe_answer) > MAX_ANSWER_CHARS:
                 raise ValueError("GENERATED_CLAIMS_TOO_LARGE")
             return {"status": "completed", "answer": safe_answer, "claims": normalized, "usage": dict(self.last_usage)}
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as exc:
+            logger.warning('rag_generation_timeout request_id=%s exception_type=%s', request_id, type(exc).__name__)
             return {"status": "timeout", "answer": None, "claims": [], "failure_reason": "PROVIDER_TIMEOUT"}
         except (httpx.HTTPError, KeyError, IndexError, TypeError, AttributeError, ValueError, json.JSONDecodeError) as exc:
             reason = "PROVIDER_RESPONSE_INVALID" if not isinstance(exc, httpx.HTTPError) else "PROVIDER_TRANSPORT_ERROR"
+            logger.warning('rag_generation_invalid request_id=%s exception_type=%s validation_code=%s',
+                           request_id, type(exc).__name__,
+                           str(exc) if str(exc) in {'INVALID_GENERATION_SCHEMA', 'UNSUPPORTED_GENERATION_CITATION', 'GENERATED_CLAIMS_TOO_LARGE'} else 'REDACTED')
             return {"status": "provider_error", "answer": None, "claims": [], "failure_reason": reason}
 
 

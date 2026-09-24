@@ -54,6 +54,26 @@ class LLMRuntimeTests(unittest.TestCase):
         provider=OpenAICompatibleProvider(self.config(),httpx.MockTransport(timeout))
         self.assertEqual(provider.generate("x",[match()])["status"],"timeout")
 
+    def test_gateway_504_is_timeout_not_invalid_json(self):
+        provider=OpenAICompatibleProvider(self.config(),self.transport({'error':{'code':'UPSTREAM_TIMEOUT'}},504))
+        with self.assertLogs('app.llm_runtime', level='WARNING') as logs:
+            result=provider.generate('private question',[match()])
+        self.assertEqual(result['status'],'timeout')
+        self.assertEqual(result['failure_reason'],'PROVIDER_HTTP_TIMEOUT')
+        self.assertIn('http_status=504', '\n'.join(logs.output))
+        self.assertNotIn('private question', '\n'.join(logs.output))
+        self.assertNotIn('test-secret', '\n'.join(logs.output))
+
+    def test_abstention_retry_does_not_reset_budget(self):
+        calls=[]
+        def respond(request):
+            calls.append(request)
+            return httpx.Response(200,json={'choices':[{'message':{'content':'{"answer":null,"claims":[]}'}}]})
+        with patch('app.llm_runtime.time.monotonic', side_effect=[0,0,4,4]):
+            result=OpenAICompatibleProvider(self.config(),httpx.MockTransport(respond)).generate('x',[match()])
+        self.assertEqual(result['status'],'timeout')
+        self.assertEqual(len(calls),1)
+
     def test_empty_provider_content_fails_closed(self):
         for content in ("", "   "):
             with self.subTest(content=content):

@@ -3,6 +3,10 @@ from __future__ import annotations
 
 import json
 import os
+import logging
+import time
+import uuid
+import asyncio
 
 import azure.functions as func
 import httpx
@@ -11,6 +15,7 @@ from gateway_core import GatewayError, MAX_BODY_BYTES, REQUEST_ID_RE, UPSTREAM_U
 from gateway_core import check_rate_limit, required, validate_envelope, verify_signature
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+logger = logging.getLogger(__name__)
 
 
 def response(status: int, payload: dict) -> func.HttpResponse:
@@ -42,19 +47,32 @@ async def chat_completions(req: func.HttpRequest) -> func.HttpResponse:
     except GatewayError as exc:
         return response(exc.status_code, {"error": {"code": exc.code}})
     headers = {"Authorization": "Bearer " + required("GEMINI_API_KEY"), "Content-Type": "application/json"}
-    request_id = req.headers.get("x-request-id")
-    if request_id and REQUEST_ID_RE.fullmatch(request_id):
-        headers["X-Request-ID"] = request_id
+    request_id = req.headers.get("x-request-id", "")
+    if not REQUEST_ID_RE.fullmatch(request_id):
+        request_id = uuid.uuid4().hex
+    headers["X-Request-ID"] = request_id
     timeout = min(max(float(os.environ.get("GATEWAY_UPSTREAM_TIMEOUT_SECONDS", "25")), 1), 45)
+    started = time.monotonic()
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            upstream = await client.post(UPSTREAM_URL, headers=headers, json=envelope)
+        # Include client setup, connection and response in one wall-clock budget.
+        async with asyncio.timeout(timeout):
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                upstream = await client.post(UPSTREAM_URL, headers=headers, json=envelope)
+        logger.log(logging.WARNING if upstream.status_code >= 400 else logging.INFO,
+                   'gemini_upstream request_id=%s http_status=%d elapsed_ms=%d',
+                   request_id, upstream.status_code, round((time.monotonic() - started) * 1000))
         try:
             result = upstream.json()
         except ValueError:
+            logger.warning('gemini_upstream_invalid_json request_id=%s http_status=%d',
+                           request_id, upstream.status_code)
             return response(502, {"error": {"code": "INVALID_UPSTREAM_RESPONSE"}})
         return response(upstream.status_code, result)
-    except httpx.TimeoutException:
+    except (httpx.TimeoutException, TimeoutError) as exc:
+        logger.warning('gemini_upstream_timeout request_id=%s exception_type=%s elapsed_ms=%d timeout_seconds=%s',
+                       request_id, type(exc).__name__, round((time.monotonic() - started) * 1000), timeout)
         return response(504, {"error": {"code": "UPSTREAM_TIMEOUT"}})
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
+        logger.warning('gemini_upstream_transport request_id=%s exception_type=%s elapsed_ms=%d',
+                       request_id, type(exc).__name__, round((time.monotonic() - started) * 1000))
         return response(502, {"error": {"code": "UPSTREAM_TRANSPORT_ERROR"}})
