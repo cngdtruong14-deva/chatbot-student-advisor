@@ -27,6 +27,7 @@ RUNTIME_APPROVAL_PROTOCOL = "rag_runtime_quality_v2"
 CAPSTONE_WAIVER_PROTOCOL = "capstone_demo_quality_waiver_v1"
 HIGH_STAKES_APPROVAL_PROTOCOL = "capstone_high_stakes_grounded_v1"
 OPERATIONAL_REBIND_PROTOCOL = "rag_prompt_operational_rebind_v1"
+OPERATIONAL_REBIND_CONFIRMATION = "APPROVE PROMPT HOTFIX + V4 OPERATIONAL REBIND"
 RUNTIME_APPROVAL_FILENAME = "rag_runtime_approval_v2.json"
 HIGH_STAKES_APPROVAL_FILENAME = "rag_high_stakes_grounded_capstone_v4.signed.json"
 RECEIPT_FILENAME = "release_v2_receipt.json"
@@ -329,10 +330,30 @@ def _approval_matches(
     # The current provider request is intentionally deterministic.  Freeze its
     # prompt identifier and fixed decoding contract with the approval rather
     # than allowing a changed environment to silently reuse benchmark results.
-    if generation.get("prompt_version") != provider.get("prompt_version"):
-        return False, APPROVAL_PROMPT_MISMATCH
     from app.llm_runtime import prompt_sha256
-    if generation.get("prompt_sha256") != prompt_sha256():
+    current_prompt_hash = prompt_sha256()
+    prompt_matches_frozen_approval = (
+        generation.get("prompt_version") == provider.get("prompt_version")
+        and generation.get("prompt_sha256") == current_prompt_hash
+    )
+    # Azure Container Apps exec is an interactive WebSocket and is not a
+    # reliable mutation channel from GitHub Actions.  An immutable revision may
+    # therefore carry the owner's operational rebind as explicit environment
+    # metadata.  It is accepted only for this one capstone hotfix, while the V4
+    # benchmark approval itself stays unchanged and hash-valid.
+    deployment_rebind = (
+        os.environ.get("RAG_OPERATIONAL_REBIND_PROTOCOL", "").strip() == OPERATIONAL_REBIND_PROTOCOL
+        and os.environ.get("RAG_OPERATIONAL_REBIND_APPROVED", "").strip().lower() in {"1", "true", "yes"}
+        and os.environ.get("RAG_OPERATIONAL_REBIND_CONFIRMATION", "").strip() == OPERATIONAL_REBIND_CONFIRMATION
+        and os.environ.get("RAG_OPERATIONAL_REBIND_PROMPT_VERSION", "").strip() == provider.get("prompt_version")
+        and provider.get("prompt_version") == "v4-operational-hotfix-1"
+        and os.environ.get("RAG_OPERATIONAL_REBIND_PROMPT_SHA256", "").strip() == current_prompt_hash
+        and generation.get("prompt_sha256") != current_prompt_hash
+        and re.fullmatch(r"[0-9a-f]{40}", os.environ.get("RAG_OPERATIONAL_REBIND_SOURCE_COMMIT", "").strip()) is not None
+        and os.environ.get("RAG_OPERATIONAL_REBIND_SOURCE_COMMIT", "").strip()
+            == os.environ.get("RAG_BUILD_COMMIT", "").strip()
+    )
+    if not prompt_matches_frozen_approval and not deployment_rebind:
         return False, APPROVAL_PROMPT_MISMATCH
     rebind = approval.get("operational_rebind")
     if rebind is not None:

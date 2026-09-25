@@ -81,28 +81,20 @@ jobs:
             echo "REVISION_SUFFIX=rag-hotfix-${short_sha}"
           } >> "$GITHUB_ENV"
 
-      - name: Rebind, deploy, health-check and run real Gemini smoke
+      - name: Deploy revision-bound rebind and run startup Gemini smoke
         shell: bash
         run: |
           set -Eeuo pipefail
           before="$RUNNER_TEMP/containerapp-before.json"
           candidate="$RUNNER_TEMP/containerapp-candidate.json"
           rollback="$RUNNER_TEMP/containerapp-rollback.json"
-          runtime_updated=0
           app_updated=0
           revision=""
-          short_sha="${GITHUB_SHA:0:7}"
-
-          restore_runtime() {
-            az containerapp exec --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --revision "$revision" --container api \
-              --command "python -m app.rebind_rag_prompt_hotfix --runtime-path $RUNTIME_PATH --high-stakes-path $HIGH_STAKES_PATH --backup-suffix $short_sha --restore --confirm '${{ inputs.confirmation }}'" || true
-          }
           restore_app() {
             jq --arg suffix "rollback-${GITHUB_RUN_ID}" '.properties.template.revisionSuffix = $suffix' "$before" > "$rollback"
             az containerapp update --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --yaml "$rollback" --output none || true
           }
           on_error() {
-            [ "$runtime_updated" -eq 0 ] || restore_runtime
             [ "$app_updated" -eq 0 ] || restore_app
           }
           trap on_error ERR
@@ -110,12 +102,26 @@ jobs:
           az containerapp show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --output json > "$before"
           jq -e '[.properties.template.containers[].name] | sort == ["api", "web"]' "$before" >/dev/null
           jq -e '.properties.template.containers[] | select(.name == "api") | .env[] | select(.name == "RAG_LLM_PROMPT_VERSION")' "$before" >/dev/null
-          jq --arg api "$API_IMAGE" --arg web "$WEB_IMAGE" --arg suffix "$REVISION_SUFFIX" --arg prompt "$PROMPT_VERSION" '
+          prompt_sha="$(docker run --rm --entrypoint python "$API_IMAGE" -c "from app.llm_runtime import prompt_sha256; print(prompt_sha256())")"
+          test "$(printf '%s' "$prompt_sha" | wc -c)" -eq 64
+          jq --arg api "$API_IMAGE" --arg web "$WEB_IMAGE" --arg suffix "$REVISION_SUFFIX" \
+             --arg prompt "$PROMPT_VERSION" --arg prompt_sha "$prompt_sha" --arg commit "$GITHUB_SHA" \
+             --arg confirmation '${{ inputs.confirmation }}' '
+            def setenv($name; $value):
+              .env = (((.env // []) | map(select(.name != $name))) + [{"name": $name, "value": $value}]);
             .properties.template.revisionSuffix = $suffix
             | .properties.template.containers |= map(
                 if .name == "api" then
                   .image = $api
-                  | .env |= map(if .name == "RAG_LLM_PROMPT_VERSION" then .value = $prompt | del(.secretRef) else . end)
+                  | setenv("RAG_LLM_PROMPT_VERSION"; $prompt)
+                  | setenv("RAG_OPERATIONAL_REBIND_PROTOCOL"; "rag_prompt_operational_rebind_v1")
+                  | setenv("RAG_OPERATIONAL_REBIND_APPROVED"; "true")
+                  | setenv("RAG_OPERATIONAL_REBIND_CONFIRMATION"; $confirmation)
+                  | setenv("RAG_OPERATIONAL_REBIND_PROMPT_VERSION"; $prompt)
+                  | setenv("RAG_OPERATIONAL_REBIND_PROMPT_SHA256"; $prompt_sha)
+                  | setenv("RAG_OPERATIONAL_REBIND_SOURCE_COMMIT"; $commit)
+                  | setenv("RAG_BUILD_COMMIT"; $commit)
+                  | setenv("RAG_DEPLOYMENT_GROUNDED_SMOKE_REQUIRED"; "true")
                 elif .name == "web" then .image = $web
                 else . end
               )
@@ -133,22 +139,11 @@ jobs:
           done
           test "$ready" -eq 1
 
-          rebind="$(timeout 90s az containerapp exec --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --revision "$revision" --container api \
-            --command "python -m app.rebind_rag_prompt_hotfix --runtime-path $RUNTIME_PATH --high-stakes-path $HIGH_STAKES_PATH --backup-suffix $short_sha --source-commit $GITHUB_SHA --prompt-version $PROMPT_VERSION --confirm '${{ inputs.confirmation }}'" 2>&1)"
-          printf '%s\n' "$rebind"
-          grep -q '"status": "OPERATIONAL_REBIND_APPLIED"' <<< "$rebind"
-          runtime_updated=1
-
           curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/healthz" >/dev/null
           curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/health/live" >/dev/null
           curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/health/ready" >/dev/null
 
-          smoke="$(timeout 90s az containerapp exec --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --revision "$revision" --container api --command "python -m app.grounded_smoke" 2>&1)"
-          printf '%s\n' "$smoke"
-          grep -q '"passed": true' <<< "$smoke"
-
           app_updated=0
-          runtime_updated=0
           trap - ERR
           echo "DEPLOYED_REVISION=$revision" >> "$GITHUB_ENV"
 

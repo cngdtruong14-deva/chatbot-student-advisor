@@ -252,6 +252,73 @@ class ControlledRetrievalModeTests(unittest.TestCase):
             )
         self.assertTrue(decision.generation_allowed)
 
+    def test_revision_bound_operational_rebind_preserves_frozen_v4_file(self):
+        items = [chunk()]
+        source_commit = "e" * 40
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            receipt_path = write_release_receipt(directory, items)
+            approval_path = write_approval(directory, release_context(items, receipt_path=receipt_path))
+            approval = json.loads(approval_path.read_text(encoding="utf-8"))
+            approval["generation"]["prompt_version"] = "v3-frozen"
+            approval["generation"]["prompt_sha256"] = "d" * 64
+            approval["approval_sha256"] = canonical_hash(approval, omit=("approval_sha256",))
+            approval_path.write_text(json.dumps(approval), encoding="utf-8")
+            env = {
+                "RAG_LLM_PROVIDER": "gemini",
+                "RAG_LLM_MODEL": "fixture-model",
+                "RAG_LLM_PROMPT_VERSION": "v4-operational-hotfix-1",
+                "RAG_LLM_ENABLED": "1",
+                "GEMINI_API_KEY": "not-a-real-key",
+                "RAG_METHOD": "dense",
+                "RAG_OPERATIONAL_REBIND_PROTOCOL": OPERATIONAL_REBIND_PROTOCOL,
+                "RAG_OPERATIONAL_REBIND_APPROVED": "true",
+                "RAG_OPERATIONAL_REBIND_CONFIRMATION": "APPROVE PROMPT HOTFIX + V4 OPERATIONAL REBIND",
+                "RAG_OPERATIONAL_REBIND_PROMPT_VERSION": "v4-operational-hotfix-1",
+                "RAG_OPERATIONAL_REBIND_PROMPT_SHA256": prompt_sha256(),
+                "RAG_OPERATIONAL_REBIND_SOURCE_COMMIT": source_commit,
+                "RAG_BUILD_COMMIT": source_commit,
+            }
+            with patch.dict(os.environ, env, clear=False):
+                decision = decide_generation(
+                    query="Lịch đăng ký học phần thế nào?",
+                    matches=[{"chunk": items[0], "score": 0.9}], corpus_scope="utt_corpus",
+                    method="dense", chunks=items, approval_path=approval_path,
+                    receipt_path=receipt_path,
+                )
+            unchanged = json.loads(approval_path.read_text(encoding="utf-8"))
+        self.assertTrue(decision.generation_allowed)
+        self.assertEqual(unchanged["generation"]["prompt_version"], "v3-frozen")
+        self.assertNotIn("operational_rebind", unchanged)
+
+    def test_revision_bound_rebind_fails_closed_on_commit_mismatch(self):
+        items = [chunk()]
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            receipt_path = write_release_receipt(directory, items)
+            approval_path = write_approval(directory, release_context(items, receipt_path=receipt_path))
+            approval = json.loads(approval_path.read_text(encoding="utf-8"))
+            approval["generation"]["prompt_sha256"] = "d" * 64
+            approval["approval_sha256"] = canonical_hash(approval, omit=("approval_sha256",))
+            approval_path.write_text(json.dumps(approval), encoding="utf-8")
+            with self.configured_env(
+                RAG_OPERATIONAL_REBIND_PROTOCOL=OPERATIONAL_REBIND_PROTOCOL,
+                RAG_OPERATIONAL_REBIND_APPROVED="true",
+                RAG_OPERATIONAL_REBIND_CONFIRMATION="APPROVE PROMPT HOTFIX + V4 OPERATIONAL REBIND",
+                RAG_OPERATIONAL_REBIND_PROMPT_VERSION="v2.0.0",
+                RAG_OPERATIONAL_REBIND_PROMPT_SHA256=prompt_sha256(),
+                RAG_OPERATIONAL_REBIND_SOURCE_COMMIT="e" * 40,
+                RAG_BUILD_COMMIT="f" * 40,
+            ):
+                decision = decide_generation(
+                    query="Lịch đăng ký học phần thế nào?",
+                    matches=[{"chunk": items[0], "score": 0.9}], corpus_scope="utt_corpus",
+                    method="dense", chunks=items, approval_path=approval_path,
+                    receipt_path=receipt_path,
+                )
+        self.assertFalse(decision.generation_allowed)
+        self.assertEqual(decision.reason, "RAG_RUNTIME_APPROVAL_PROMPT_MISMATCH")
+
     def test_operational_rebind_apply_and_restore_are_hash_bound(self):
         items = [chunk()]
         with tempfile.TemporaryDirectory() as raw:
