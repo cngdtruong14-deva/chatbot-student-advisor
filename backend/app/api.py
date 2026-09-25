@@ -551,15 +551,44 @@ def assigned_students(user: Actor, limit: int = 20, cursor: str | None = None):
         return envelope(page(data, limit, cursor))
 
 
-@router.post("/admin/advisor-assignments")
+@router.get("/admin/advisor-assignments", response_model=out.Envelope[out.AdvisorAssignmentList])
+def list_assignments(user: Actor):
+    require_role(user, "admin")
+    with transaction() as db:
+        items = rows(db, """SELECT aa.advisor_user_id,
+              COALESCE(a.username,a.email) AS advisor_name,aa.student_id,
+              s.student_code,s.full_name AS student_name
+            FROM app.advisor_assignments aa
+            JOIN app.users a ON a.id=aa.advisor_user_id
+            JOIN app.students s ON s.id=aa.student_id
+            ORDER BY advisor_name,s.student_code""")
+    return envelope({"items": items})
+
+
+@router.post("/admin/advisor-assignments", response_model=out.Envelope[out.AdvisorAssignmentResult])
 def assign(body: Assignment, user: Actor):
     require_role(user, "admin")
     with transaction() as db:
         if not one(db, "SELECT id FROM app.users WHERE id=:id AND role='advisor' AND is_active", id=body.advisor_user_id):
             raise APIError("INVALID_ADVISOR")
         authorized_student(db, user, body.student_id)
-        run(db, "INSERT INTO app.advisor_assignments(advisor_user_id,student_id) VALUES(:uid,:sid) ON CONFLICT DO NOTHING", uid=body.advisor_user_id, sid=body.student_id)
+        result = run(db, "INSERT INTO app.advisor_assignments(advisor_user_id,student_id) VALUES(:uid,:sid) ON CONFLICT DO NOTHING", uid=body.advisor_user_id, sid=body.student_id)
+        if result.rowcount:
+            run(db, "INSERT INTO app.account_audit(actor_id,subject_id,action) SELECT :actor,user_id,'advisor_assigned' FROM app.students WHERE id=:sid",
+                actor=user["id"], sid=body.student_id)
         return envelope({"assigned": True})
+
+
+@router.delete("/admin/advisor-assignments/{advisor_user_id}/{student_id}", response_model=out.Envelope[out.AdvisorAssignmentResult])
+def unassign(advisor_user_id: UUID, student_id: UUID, user: Actor):
+    require_role(user, "admin")
+    with transaction() as db:
+        result = run(db, "DELETE FROM app.advisor_assignments WHERE advisor_user_id=:uid AND student_id=:sid",
+                     uid=advisor_user_id, sid=student_id)
+        if result.rowcount:
+            run(db, "INSERT INTO app.account_audit(actor_id,subject_id,action) SELECT :actor,user_id,'advisor_unassigned' FROM app.students WHERE id=:sid",
+                actor=user["id"], sid=student_id)
+    return envelope({"assigned": False})
 
 
 def recommend_service(db, student, semester_id, target_course_ids=()):

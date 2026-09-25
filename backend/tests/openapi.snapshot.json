@@ -586,6 +586,22 @@
       }
     },
     "/api/v1/admin/advisor-assignments": {
+      "get": {
+        "summary": "List Assignments",
+        "operationId": "list_assignments_api_v1_admin_advisor_assignments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdvisorAssignmentList_"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "summary": "Assign",
         "operationId": "assign_api_v1_admin_advisor_assignments_post",
@@ -604,7 +620,59 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdvisorAssignmentResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/advisor-assignments/{advisor_user_id}/{student_id}": {
+      "delete": {
+        "summary": "Unassign",
+        "operationId": "unassign_api_v1_admin_advisor_assignments__advisor_user_id___student_id__delete",
+        "parameters": [
+          {
+            "name": "advisor_user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Advisor User Id"
+            }
+          },
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdvisorAssignmentResult_"
+                }
               }
             }
           },
@@ -1637,6 +1705,156 @@
         }
       }
     },
+    "/api/v1/admin/accounts": {
+      "get": {
+        "summary": "Accounts",
+        "description": "Admin-only account inventory with explicit academic-link state.",
+        "operationId": "accounts_api_v1_admin_accounts_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdminAccountList_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/cohorts": {
+      "get": {
+        "summary": "Admin Cohorts",
+        "operationId": "admin_cohorts_api_v1_admin_cohorts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdminCohortList_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/account-audit": {
+      "get": {
+        "summary": "Account Audit",
+        "operationId": "account_audit_api_v1_admin_account_audit_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdminAccountAuditList_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/accounts/{user_id}/academic-profile": {
+      "post": {
+        "summary": "Academic Profile Link",
+        "description": "Create one synthetic pilot academic profile; ownership is never transferred.",
+        "operationId": "academic_profile_link_api_v1_admin_accounts__user_id__academic_profile_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademicProfileLink"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_AdminAcademicProfileLinkResult_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/account-invites": {
       "post": {
         "summary": "Invite",
@@ -2177,6 +2395,48 @@
   },
   "components": {
     "schemas": {
+      "AcademicProfileLink": {
+        "properties": {
+          "student_code": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 2,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Student Code"
+          },
+          "full_name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Full Name"
+          },
+          "curriculum_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Curriculum Id"
+          },
+          "cohort_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Cohort Id"
+          },
+          "confirmation": {
+            "type": "string",
+            "pattern": "^LINK_ACADEMIC_PROFILE$",
+            "title": "Confirmation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "student_code",
+          "full_name",
+          "curriculum_id",
+          "cohort_id",
+          "confirmation"
+        ],
+        "title": "AcademicProfileLink"
+      },
       "AcademicSummary": {
         "properties": {
           "cumulative_gpa": {
@@ -2290,6 +2550,443 @@
           "domain_id"
         ],
         "title": "AcademicSummary"
+      },
+      "AdminAcademicProfileLinkResult": {
+        "properties": {
+          "linked": {
+            "type": "boolean",
+            "const": true,
+            "title": "Linked"
+          },
+          "idempotent": {
+            "type": "boolean",
+            "title": "Idempotent"
+          },
+          "student_id": {
+            "type": "string",
+            "title": "Student Id"
+          },
+          "student_code": {
+            "type": "string",
+            "title": "Student Code"
+          },
+          "data_origin": {
+            "type": "string",
+            "const": "synthetic",
+            "title": "Data Origin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "linked",
+          "idempotent",
+          "student_id",
+          "student_code",
+          "data_origin"
+        ],
+        "title": "AdminAcademicProfileLinkResult"
+      },
+      "AdminAccountAuditItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "created_at",
+          "actor",
+          "subject"
+        ],
+        "title": "AdminAccountAuditItem"
+      },
+      "AdminAccountAuditList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAccountAuditItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AdminAccountAuditList"
+      },
+      "AdminAccountItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "student",
+              "advisor",
+              "admin"
+            ],
+            "title": "Role"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "self_reported_major": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Self Reported Major"
+          },
+          "self_reported_cohort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Self Reported Cohort"
+          },
+          "personal_transcript_revision": {
+            "type": "integer",
+            "title": "Personal Transcript Revision"
+          },
+          "student_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Id"
+          },
+          "student_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Code"
+          },
+          "full_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "curriculum_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curriculum Id"
+          },
+          "curriculum_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curriculum Code"
+          },
+          "curriculum_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curriculum Version"
+          },
+          "curriculum_major": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Curriculum Major"
+          },
+          "cohort_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort Id"
+          },
+          "cohort_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort Code"
+          },
+          "advisor_count": {
+            "type": "integer",
+            "title": "Advisor Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "email",
+          "role",
+          "is_active",
+          "created_at",
+          "display_name",
+          "self_reported_major",
+          "self_reported_cohort",
+          "personal_transcript_revision",
+          "student_id",
+          "student_code",
+          "full_name",
+          "curriculum_id",
+          "curriculum_code",
+          "curriculum_version",
+          "curriculum_major",
+          "cohort_id",
+          "cohort_code",
+          "advisor_count"
+        ],
+        "title": "AdminAccountItem"
+      },
+      "AdminAccountList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAccountItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AdminAccountList"
+      },
+      "AdminCohortList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminCohortOption"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AdminCohortList"
+      },
+      "AdminCohortOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "curriculum_id": {
+            "type": "string",
+            "title": "Curriculum Id"
+          },
+          "curriculum_code": {
+            "type": "string",
+            "title": "Curriculum Code"
+          },
+          "curriculum_version": {
+            "type": "string",
+            "title": "Curriculum Version"
+          },
+          "major": {
+            "type": "string",
+            "title": "Major"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "curriculum_id",
+          "curriculum_code",
+          "curriculum_version",
+          "major"
+        ],
+        "title": "AdminCohortOption"
+      },
+      "AdvisorAssignmentItem": {
+        "properties": {
+          "advisor_user_id": {
+            "type": "string",
+            "title": "Advisor User Id"
+          },
+          "advisor_name": {
+            "type": "string",
+            "title": "Advisor Name"
+          },
+          "student_id": {
+            "type": "string",
+            "title": "Student Id"
+          },
+          "student_code": {
+            "type": "string",
+            "title": "Student Code"
+          },
+          "student_name": {
+            "type": "string",
+            "title": "Student Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "advisor_user_id",
+          "advisor_name",
+          "student_id",
+          "student_code",
+          "student_name"
+        ],
+        "title": "AdvisorAssignmentItem"
+      },
+      "AdvisorAssignmentList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdvisorAssignmentItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AdvisorAssignmentList"
+      },
+      "AdvisorAssignmentResult": {
+        "properties": {
+          "assigned": {
+            "type": "boolean",
+            "title": "Assigned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assigned"
+        ],
+        "title": "AdvisorAssignmentResult"
       },
       "Assignment": {
         "properties": {
@@ -2807,6 +3504,102 @@
           "meta"
         ],
         "title": "Envelope[AcademicSummary]"
+      },
+      "Envelope_AdminAcademicProfileLinkResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminAcademicProfileLinkResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AdminAcademicProfileLinkResult]"
+      },
+      "Envelope_AdminAccountAuditList_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminAccountAuditList"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AdminAccountAuditList]"
+      },
+      "Envelope_AdminAccountList_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminAccountList"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AdminAccountList]"
+      },
+      "Envelope_AdminCohortList_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminCohortList"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AdminCohortList]"
+      },
+      "Envelope_AdvisorAssignmentList_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdvisorAssignmentList"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AdvisorAssignmentList]"
+      },
+      "Envelope_AdvisorAssignmentResult_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdvisorAssignmentResult"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[AdvisorAssignmentResult]"
       },
       "Envelope_ChatSession_": {
         "properties": {

@@ -113,7 +113,7 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
 
     // Admin pilot account & invite code
     await page.locator('aside nav').getByRole('button', { name: 'Tổng quan hệ thống' }).click();
-    const accountPanel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Tài khoản pilot' }) });
+    const accountPanel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Cấp quyền truy cập pilot' }) });
     await accountPanel.getByRole('button', { name: /Tạo mã mời/ }).click();
     const invite = (await accountPanel.locator('code').textContent()).trim();
     await logout();
@@ -134,11 +134,14 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
 
     // 10. Admin recovery code issuance
     await login('admin@demo.local', password, 'Tổng quan quản trị hệ thống');
-    const recoveryPanel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Tài khoản pilot' }) });
-    await recoveryPanel.getByLabel('User UUID của sinh viên').fill(newUser.id);
-    await recoveryPanel.getByRole('checkbox').check();
+    const accountTable = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Tài khoản và trạng thái hồ sơ' }) });
+    const newAccountRow = accountTable.locator('tbody tr').filter({ hasText: username });
+    await newAccountRow.getByRole('button', { name: 'Quản lý' }).click();
+    const recoveryPanel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: `Quản lý sinh viên: ${username}` }) });
+    await recoveryPanel.getByText('Khôi phục mật khẩu', { exact: true }).click();
+    await recoveryPanel.getByRole('checkbox', { name: /xác minh đúng chủ tài khoản/ }).check();
     await recoveryPanel.getByRole('button', { name: /Cấp mã khôi phục/ }).click();
-    const recovery = (await recoveryPanel.locator('code').textContent()).trim();
+    const recovery = (await page.locator('.one-time-secret code').textContent()).trim();
     await logout();
 
     // 11. Password recovery flow

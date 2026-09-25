@@ -47,6 +47,82 @@ class ProfileSaveResult(BaseModel):
     data_origin: Literal['self_reported']
 
 
+class AdminAccountItem(Extensible):
+    id: str
+    username: str | None
+    email: str
+    role: Literal['student', 'advisor', 'admin']
+    is_active: bool
+    created_at: datetime
+    display_name: str | None
+    self_reported_major: str | None
+    self_reported_cohort: str | None
+    personal_transcript_revision: int
+    student_id: str | None
+    student_code: str | None
+    full_name: str | None
+    curriculum_id: str | None
+    curriculum_code: str | None
+    curriculum_version: str | None
+    curriculum_major: str | None
+    cohort_id: str | None
+    cohort_code: str | None
+    advisor_count: int
+
+
+class AdminAccountList(BaseModel):
+    items: list[AdminAccountItem]
+
+
+class AdminCohortOption(BaseModel):
+    id: str
+    code: str
+    curriculum_id: str
+    curriculum_code: str
+    curriculum_version: str
+    major: str
+
+
+class AdminCohortList(BaseModel):
+    items: list[AdminCohortOption]
+
+
+class AdminAcademicProfileLinkResult(BaseModel):
+    linked: Literal[True]
+    idempotent: bool
+    student_id: str
+    student_code: str
+    data_origin: Literal['synthetic']
+
+
+class AdminAccountAuditItem(BaseModel):
+    id: str
+    action: str
+    created_at: datetime
+    actor: str | None
+    subject: str | None
+
+
+class AdminAccountAuditList(BaseModel):
+    items: list[AdminAccountAuditItem]
+
+
+class AdvisorAssignmentItem(BaseModel):
+    advisor_user_id: str
+    advisor_name: str
+    student_id: str
+    student_code: str
+    student_name: str
+
+
+class AdvisorAssignmentList(BaseModel):
+    items: list[AdvisorAssignmentItem]
+
+
+class AdvisorAssignmentResult(BaseModel):
+    assigned: bool
+
+
 class CurriculumOption(BaseModel):
     id: str
     code: str

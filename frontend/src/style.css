@@ -702,6 +702,65 @@ td b {
   background: #eff6ff;
   color: #1e3a8a;
 }
+.admin-account-workspace {
+  display: grid;
+  gap: 18px;
+}
+.admin-account-workspace .panel {
+  margin: 0;
+}
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.permission-grid > div {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid #d7e1da;
+  border-radius: 8px;
+  background: #f8fbf9;
+}
+.permission-grid span,
+.status-strip small,
+table small {
+  display: block;
+  color: #6b7b71;
+  line-height: 1.45;
+}
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.one-time-secret {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #d9c98e;
+  border-radius: 8px;
+  background: #fffbea;
+}
+.one-time-secret code {
+  display: inline-block;
+  margin-right: 10px;
+  overflow-wrap: anywhere;
+}
+.inline-admin-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: 12px;
+}
+.success {
+  color: #155f45;
+  background: #eff8f3;
+  border: 1px solid #b9ddca;
+  border-radius: 8px;
+  padding: 12px;
+}
 .intro > p:not(.eyebrow) {
   font-size: 14px;
   color: #9eb9aa;
@@ -774,6 +833,10 @@ code {
   }
 }
 @media (max-width: 720px) {
+  .permission-grid,
+  .inline-admin-form {
+    grid-template-columns: 1fr;
+  }
   .chat-workspace {
     grid-template-columns: 1fr;
   }

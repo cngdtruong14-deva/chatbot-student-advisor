@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api import Actor, DTO, APIError, envelope, router, require_role, rate_limit, same_origin
 from app import responses as out
 from app.security import password_hash, token_hash
-from app.store import transaction, one, run
+from app.store import transaction, one, rows, run
 
 
 class Registration(DTO):
@@ -40,8 +40,122 @@ class PersonalProfile(DTO):
         return value.strip()
 
 
+class AcademicProfileLink(DTO):
+    student_code: str = Field(min_length=2, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")
+    full_name: str = Field(min_length=2, max_length=160)
+    curriculum_id: UUID
+    cohort_id: UUID
+    confirmation: str = Field(pattern=r"^LINK_ACADEMIC_PROFILE$")
+
+    @field_validator("student_code")
+    @classmethod
+    def normalized_code(cls, value):
+        return value.strip().upper()
+
+    @field_validator("full_name")
+    @classmethod
+    def normalized_name(cls, value):
+        value = " ".join(value.split())
+        if len(value) < 2:
+            raise ValueError("Blank name")
+        return value
+
+
 def audit(db, actor, subject, action):
     run(db, "INSERT INTO app.account_audit(actor_id,subject_id,action) VALUES(:a,:s,:v)", a=actor, s=subject, v=action)
+
+
+@router.get("/admin/accounts", response_model=out.Envelope[out.AdminAccountList])
+def accounts(user: Actor, q: str = ""):
+    """Admin-only account inventory with explicit academic-link state."""
+    require_role(user, "admin")
+    needle = f"%{q.strip().lower()}%"
+    with transaction() as db:
+        items = rows(db, """SELECT u.id,u.username,u.email,u.role,u.is_active,u.created_at,
+              p.display_name,p.major AS self_reported_major,p.cohort AS self_reported_cohort,
+              COALESCE(pt.revision,0) AS personal_transcript_revision,
+              s.id AS student_id,s.student_code,s.full_name,s.curriculum_id,s.cohort_id,
+              COALESCE(ch.code,s.cohort) AS cohort_code,c.code AS curriculum_code,
+              c.version AS curriculum_version,c.major AS curriculum_major,
+              COALESCE((SELECT count(*) FROM app.advisor_assignments aa WHERE aa.student_id=s.id),0) AS advisor_count
+            FROM app.users u
+            LEFT JOIN app.onboarding_profiles p ON p.user_id=u.id
+            LEFT JOIN app.personal_transcripts pt ON pt.user_id=u.id
+            LEFT JOIN app.students s ON s.user_id=u.id
+            LEFT JOIN app.curricula c ON c.id=s.curriculum_id
+            LEFT JOIN app.cohorts ch ON ch.id=s.cohort_id
+            WHERE :q='%%' OR lower(COALESCE(u.username,'') || ' ' || u.email || ' ' ||
+                  COALESCE(p.display_name,'') || ' ' || COALESCE(s.student_code,'') || ' ' ||
+                  COALESCE(s.full_name,'')) LIKE :q
+            ORDER BY CASE u.role WHEN 'admin' THEN 1 WHEN 'advisor' THEN 2 ELSE 3 END,
+                     COALESCE(u.username,u.email),u.id LIMIT 250""", q=needle)
+    return envelope({"items": items})
+
+
+@router.get("/admin/cohorts", response_model=out.Envelope[out.AdminCohortList])
+def admin_cohorts(user: Actor):
+    require_role(user, "admin")
+    with transaction() as db:
+        items = rows(db, """SELECT ch.id,ch.code,ch.curriculum_id,c.code AS curriculum_code,
+              c.version AS curriculum_version,c.major
+            FROM app.cohorts ch JOIN app.curricula c ON c.id=ch.curriculum_id
+            WHERE c.status='demo' ORDER BY c.major,c.version,ch.code""")
+    return envelope({"items": items})
+
+
+@router.get("/admin/account-audit", response_model=out.Envelope[out.AdminAccountAuditList])
+def account_audit(user: Actor, limit: int = 50):
+    require_role(user, "admin")
+    limit = max(1, min(limit, 100))
+    with transaction() as db:
+        items = rows(db, """SELECT a.id,a.action,a.created_at,
+              COALESCE(actor.username,actor.email) AS actor,
+              COALESCE(subject.username,subject.email) AS subject
+            FROM app.account_audit a
+            LEFT JOIN app.users actor ON actor.id=a.actor_id
+            LEFT JOIN app.users subject ON subject.id=a.subject_id
+            ORDER BY a.created_at DESC,a.id DESC LIMIT :limit""", limit=limit)
+    return envelope({"items": items})
+
+
+@router.post("/admin/accounts/{user_id}/academic-profile", response_model=out.Envelope[out.AdminAcademicProfileLinkResult])
+def academic_profile_link(user_id: UUID, body: AcademicProfileLink, user: Actor, request: Request):
+    """Create one synthetic pilot academic profile; ownership is never transferred."""
+    require_role(user, "admin")
+    rate_limit(request, "academic_profile_link", 20)
+    with transaction() as db:
+        target = one(db, "SELECT id,role,is_active FROM app.users WHERE id=:id FOR UPDATE", id=user_id)
+        if not target or target["role"] != "student":
+            raise APIError("RESOURCE_NOT_FOUND", 404, "Không tìm thấy tài khoản sinh viên")
+        if not target["is_active"]:
+            raise APIError("ACCOUNT_INACTIVE", 409, "Không thể liên kết tài khoản đã khóa")
+        curriculum = one(db, "SELECT id FROM app.curricula WHERE id=:id AND status='demo'", id=body.curriculum_id)
+        cohort = one(db, "SELECT id,code,curriculum_id FROM app.cohorts WHERE id=:id", id=body.cohort_id)
+        if not curriculum or not cohort or cohort["curriculum_id"] != curriculum["id"]:
+            raise APIError("INVALID_ACADEMIC_PROFILE", 422, "Khóa không thuộc chương trình đã chọn")
+        existing = one(db, "SELECT id,student_code,curriculum_id,cohort_id FROM app.students WHERE user_id=:id FOR UPDATE", id=user_id)
+        if existing:
+            exact = (existing["student_code"] == body.student_code and
+                     existing["curriculum_id"] == body.curriculum_id and
+                     existing["cohort_id"] == body.cohort_id)
+            if not exact:
+                raise APIError("ACCOUNT_ALREADY_LINKED", 409,
+                               "Tài khoản đã liên kết hồ sơ khác; không cho phép chuyển hoặc ghi đè tự động")
+            return envelope({"linked": True, "idempotent": True, "student_id": existing["id"],
+                             "student_code": existing["student_code"], "data_origin": "synthetic"})
+        claimed = one(db, "SELECT user_id FROM app.students WHERE domain_id='demo_academic' AND student_code=:code FOR UPDATE",
+                      code=body.student_code)
+        if claimed:
+            raise APIError("STUDENT_CODE_ALREADY_LINKED", 409, "Mã sinh viên đã thuộc tài khoản khác")
+        student = one(db, """INSERT INTO app.students
+              (user_id,student_code,full_name,curriculum_id,cohort,cohort_id,domain_id,data_origin)
+            VALUES(:user_id,:student_code,:full_name,:curriculum_id,:cohort,:cohort_id,
+                   'demo_academic','synthetic') RETURNING id,student_code""",
+            user_id=user_id, student_code=body.student_code, full_name=body.full_name,
+            curriculum_id=body.curriculum_id, cohort=cohort["code"], cohort_id=body.cohort_id)
+        audit(db, user["id"], user_id, "academic_profile_linked")
+    return envelope({"linked": True, "idempotent": False, "student_id": student["id"],
+                     "student_code": student["student_code"], "data_origin": "synthetic"})
 
 
 @router.post("/admin/account-invites", response_model=out.Envelope[out.OneTimeAccountCode])
