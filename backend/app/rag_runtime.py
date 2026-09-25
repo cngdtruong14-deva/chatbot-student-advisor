@@ -357,7 +357,7 @@ def _approval_matches(
         regression = rebind.get("regression")
         if not isinstance(regression, Mapping):
             return False, APPROVAL_INVALID
-        if regression.get("isolated_tests_passed") != regression.get("isolated_tests_total") or regression.get("isolated_tests_total") != 37:
+        if regression.get("isolated_tests_passed") != regression.get("isolated_tests_total") or regression.get("isolated_tests_total") != 38:
             return False, APPROVAL_INVALID
         if regression.get("false_abstention_case") != "utt_it_output_standard_exemption":
             return False, APPROVAL_INVALID

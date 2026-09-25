@@ -1,13 +1,13 @@
-"""Create a traceable V4 operational prompt rebind without rewriting benchmark history."""
+"""Apply or restore a traceable V4 prompt rebind on the mounted runtime files."""
 from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
-import sys
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
+import shutil
+import uuid
 
 from app.llm_runtime import prompt_sha256
 from app.rag_runtime import (
@@ -28,26 +28,32 @@ def load(path: Path) -> dict:
     return value
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--runtime-input", type=Path, required=True)
-    parser.add_argument("--high-stakes-input", type=Path, required=True)
-    parser.add_argument("--runtime-output", type=Path, required=True)
-    parser.add_argument("--high-stakes-output", type=Path, required=True)
-    parser.add_argument("--metadata-output", type=Path, required=True)
-    parser.add_argument("--source-commit", required=True)
-    parser.add_argument("--prompt-version", default="v4-operational-hotfix-1")
-    parser.add_argument("--confirm", required=True)
-    args = parser.parse_args()
-    if args.confirm != CONFIRM:
-        raise ValueError("EXPLICIT_OWNER_CONFIRMATION_REQUIRED")
-    if any(path.exists() for path in (args.runtime_output, args.high_stakes_output, args.metadata_output)):
-        raise ValueError("OUTPUT_EXISTS")
-    if len(args.source_commit) != 40 or any(ch not in "0123456789abcdef" for ch in args.source_commit):
-        raise ValueError("SOURCE_COMMIT_INVALID")
+def backup_path(path: Path, suffix: str) -> Path:
+    return path.with_name(path.stem + f".pre-{suffix}" + path.suffix)
 
-    runtime = load(args.runtime_input)
-    overlay = load(args.high_stakes_input)
+
+def atomic_write(path: Path, value: dict) -> None:
+    temporary = path.with_name(path.name + ".tmp-" + uuid.uuid4().hex)
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def restore(runtime_path: Path, overlay_path: Path, suffix: str) -> dict:
+    runtime_backup = backup_path(runtime_path, suffix)
+    overlay_backup = backup_path(overlay_path, suffix)
+    if not runtime_backup.is_file() or not overlay_backup.is_file():
+        raise ValueError("REBIND_BACKUP_MISSING")
+    atomic_write(runtime_path, load(runtime_backup))
+    atomic_write(overlay_path, load(overlay_backup))
+    return {"status": "OPERATIONAL_REBIND_RESTORED", "backup_suffix": suffix}
+
+
+def apply(runtime_path: Path, overlay_path: Path, *, source_commit: str,
+          prompt_version: str, backup_suffix: str) -> dict:
+    if len(source_commit) != 40 or any(ch not in "0123456789abcdef" for ch in source_commit):
+        raise ValueError("SOURCE_COMMIT_INVALID")
+    runtime = load(runtime_path)
+    overlay = load(overlay_path)
     if runtime.get("protocol") != RUNTIME_APPROVAL_PROTOCOL or runtime.get("approved") is not True:
         raise ValueError("BASE_RUNTIME_APPROVAL_INVALID")
     old_runtime_hash = runtime.get("approval_sha256")
@@ -59,7 +65,6 @@ def main() -> int:
         raise ValueError("BASE_HIGH_STAKES_APPROVAL_HASH_INVALID")
     if overlay.get("base_runtime_approval_sha256") != old_runtime_hash:
         raise ValueError("BASE_APPROVAL_LINK_MISMATCH")
-
     generation = runtime.get("generation")
     if not isinstance(generation, dict):
         raise ValueError("GENERATION_BINDING_MISSING")
@@ -69,7 +74,7 @@ def main() -> int:
         raise ValueError("PROMPT_IMPLEMENTATION_UNCHANGED")
 
     now = datetime.now(timezone.utc).isoformat()
-    generation.update(prompt_version=args.prompt_version, prompt_sha256=new_prompt_hash)
+    generation.update(prompt_version=prompt_version, prompt_sha256=new_prompt_hash)
     runtime["operational_rebind"] = {
         "protocol": OPERATIONAL_REBIND_PROTOCOL,
         "approved": True,
@@ -78,13 +83,13 @@ def main() -> int:
         "scope": "capstone_demo_only",
         "base_runtime_approval_sha256": old_runtime_hash,
         "base_prompt_sha256": old_prompt_hash,
-        "prompt_version": args.prompt_version,
+        "prompt_version": prompt_version,
         "prompt_sha256": new_prompt_hash,
-        "source_commit": args.source_commit,
+        "source_commit": source_commit,
         "reason": "Correct a verified false abstention after successful grounded retrieval; V4 benchmark result is not rewritten.",
         "regression": {
-            "isolated_tests_total": 37,
-            "isolated_tests_passed": 37,
+            "isolated_tests_total": 38,
+            "isolated_tests_passed": 38,
             "false_abstention_case": "utt_it_output_standard_exemption",
         },
         "risk_controls": {
@@ -96,28 +101,58 @@ def main() -> int:
         },
     }
     runtime["approval_sha256"] = canonical_hash(runtime, omit=("approval_sha256",))
-
     overlay["base_runtime_approval_sha256"] = runtime["approval_sha256"]
     overlay["operational_rebind"] = {
         "protocol": OPERATIONAL_REBIND_PROTOCOL,
         "runtime_approval_sha256": runtime["approval_sha256"],
         "prompt_sha256": new_prompt_hash,
-        "source_commit": args.source_commit,
+        "source_commit": source_commit,
     }
     overlay["approval_sha256"] = canonical_hash(overlay, omit=("approval_sha256",))
 
-    args.runtime_output.write_text(json.dumps(runtime, ensure_ascii=False, indent=2), encoding="utf-8")
-    args.high_stakes_output.write_text(json.dumps(overlay, ensure_ascii=False, indent=2), encoding="utf-8")
-    metadata = {
-        "status": "OPERATIONAL_REBIND_CREATED",
-        "prompt_version": args.prompt_version,
+    runtime_backup = backup_path(runtime_path, backup_suffix)
+    overlay_backup = backup_path(overlay_path, backup_suffix)
+    if runtime_backup.exists() or overlay_backup.exists():
+        raise ValueError("REBIND_BACKUP_EXISTS")
+    shutil.copyfile(runtime_path, runtime_backup)
+    shutil.copyfile(overlay_path, overlay_backup)
+    try:
+        atomic_write(runtime_path, runtime)
+        atomic_write(overlay_path, overlay)
+    except Exception:
+        shutil.copyfile(runtime_backup, runtime_path)
+        shutil.copyfile(overlay_backup, overlay_path)
+        raise
+    return {
+        "status": "OPERATIONAL_REBIND_APPLIED",
+        "prompt_version": prompt_version,
         "prompt_sha256": new_prompt_hash,
         "runtime_approval_sha256": runtime["approval_sha256"],
         "high_stakes_approval_sha256": overlay["approval_sha256"],
-        "source_commit": args.source_commit,
+        "source_commit": source_commit,
+        "backup_suffix": backup_suffix,
     }
-    args.metadata_output.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    print(json.dumps(metadata))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--runtime-path", type=Path, required=True)
+    parser.add_argument("--high-stakes-path", type=Path, required=True)
+    parser.add_argument("--backup-suffix", required=True)
+    parser.add_argument("--source-commit")
+    parser.add_argument("--prompt-version", default="v4-operational-hotfix-1")
+    parser.add_argument("--restore", action="store_true")
+    parser.add_argument("--confirm", required=True)
+    args = parser.parse_args()
+    if args.confirm != CONFIRM:
+        raise ValueError("EXPLICIT_OWNER_CONFIRMATION_REQUIRED")
+    result = (
+        restore(args.runtime_path, args.high_stakes_path, args.backup_suffix)
+        if args.restore else
+        apply(args.runtime_path, args.high_stakes_path, source_commit=args.source_commit or "",
+              prompt_version=args.prompt_version, backup_suffix=args.backup_suffix)
+    )
+    print(json.dumps(result))
     return 0
 
 

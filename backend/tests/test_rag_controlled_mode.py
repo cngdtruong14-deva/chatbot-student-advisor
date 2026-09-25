@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 from app import knowledge
 from app.llm_runtime import prompt_sha256
+from app.rebind_rag_prompt_hotfix import apply as apply_rebind, backup_path, restore as restore_rebind
 from app.rag_runtime import (
     APPROVAL_MISSING,
     EFFECTIVE_DATE_UNVERIFIED,
@@ -179,8 +180,8 @@ def attach_operational_rebind(path: Path) -> None:
         "prompt_sha256": current_prompt,
         "source_commit": "e" * 40,
         "regression": {
-            "isolated_tests_total": 37,
-            "isolated_tests_passed": 37,
+            "isolated_tests_total": 38,
+            "isolated_tests_passed": 38,
             "false_abstention_case": "utt_it_output_standard_exemption",
         },
         "risk_controls": {
@@ -250,6 +251,33 @@ class ControlledRetrievalModeTests(unittest.TestCase):
                 approval_path=approval_path, receipt_path=receipt_path,
             )
         self.assertTrue(decision.generation_allowed)
+
+    def test_operational_rebind_apply_and_restore_are_hash_bound(self):
+        items = [chunk()]
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            receipt_path = write_release_receipt(directory, items)
+            context = release_context(items, receipt_path=receipt_path)
+            approval_path = write_capstone_approval(directory, context)
+            approval = json.loads(approval_path.read_text(encoding="utf-8"))
+            approval["generation"]["prompt_sha256"] = "d" * 64
+            approval["approval_sha256"] = canonical_hash(approval, omit=("approval_sha256",))
+            approval_path.write_text(json.dumps(approval), encoding="utf-8")
+            overlay_path = write_high_stakes_approval(directory, approval_path, context)
+
+            result = apply_rebind(
+                approval_path, overlay_path, source_commit="e" * 40,
+                prompt_version="v4-operational-hotfix-1", backup_suffix="fixture",
+            )
+            self.assertEqual(result["status"], "OPERATIONAL_REBIND_APPLIED")
+            self.assertTrue(backup_path(approval_path, "fixture").is_file())
+            rebound = json.loads(approval_path.read_text(encoding="utf-8"))
+            self.assertEqual(rebound["generation"]["prompt_sha256"], prompt_sha256())
+            self.assertEqual(rebound["operational_rebind"]["base_prompt_sha256"], "d" * 64)
+
+            restored = restore_rebind(approval_path, overlay_path, "fixture")
+            self.assertEqual(restored["status"], "OPERATIONAL_REBIND_RESTORED")
+            self.assertEqual(json.loads(approval_path.read_text(encoding="utf-8"))["generation"]["prompt_sha256"], "d" * 64)
 
     def test_operational_rebind_fails_closed_when_control_is_removed(self):
         items = [chunk()]
