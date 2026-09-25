@@ -173,10 +173,23 @@ export function Chat({ isAdmin = false, isStudent = false, studentProfileLinked 
   const [pending, setPending] = useState<{ message: string; client_turn_id: string } | null>(null);
   const [feedback, setFeedback] = useState<Record<string, FeedbackState>>({});
   const [selectedEvidenceTurnId, setSelectedEvidenceTurnId] = useState('');
+  const [personalAcademicState, setPersonalAcademicState] = useState<'loading' | 'empty' | 'ready'>('loading');
   const [corpusScope, setCorpusScope] = useState<'demo_academic' | 'utt_test' | 'utt_corpus'>(
     (isAdmin || isStudent) ? 'utt_corpus' : 'demo_academic'
   );
   useEffect(() => { let alive = true; api<{ items: Session[] }>('/chat/sessions').then(r => { if (alive) setSessions(r.items); }).catch(e => { if (alive) setError(e.message); }); return () => { alive = false; }; }, []);
+  useEffect(() => {
+    if (!isStudent) { setPersonalAcademicState('empty'); return; }
+    let alive = true;
+    api<any>('/account/transcript')
+      .then(view => {
+        if (!alive) return;
+        const attempts = Array.isArray(view?.transcript?.attempts) ? view.transcript.attempts : [];
+        setPersonalAcademicState(view?.revision > 0 && attempts.length > 0 ? 'ready' : 'empty');
+      })
+      .catch(() => { if (alive) setPersonalAcademicState('empty'); });
+    return () => { alive = false; };
+  }, [isStudent]);
   async function open(id: string) {
     setBusy(true); setError('');
     try {
@@ -237,7 +250,9 @@ export function Chat({ isAdmin = false, isStudent = false, studentProfileLinked 
     </div>
     <div className="chat-workspace">
     <div className="chat-main">
-      {isStudent && !studentProfileLinked && <p role="status" className="error">Tài khoản chưa liên kết hồ sơ học vụ. Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung; bảng điểm, GPA cá nhân và tài liệu theo ngành/khóa chỉ mở sau khi hồ sơ được liên kết. {PRODUCT_CONFIG.ACCOUNTS.UNLINKED_NOTICE}</p>}
+      {isStudent && !studentProfileLinked && personalAcademicState === 'ready' && <p role="status" className="chat-profile-status chat-profile-status-personal"><strong>Hồ sơ tự khai đang hoạt động.</strong> Chatbot có thể đọc bảng điểm đã lưu, tính GPA và mô phỏng cho chính tài khoản này. Dữ liệu trường và tài liệu giới hạn theo ngành/khóa vẫn chưa được liên kết hoặc xác minh.</p>}
+      {isStudent && !studentProfileLinked && personalAcademicState === 'empty' && <p role="status" className="error"><strong>Chưa có hồ sơ học tập cá nhân.</strong> Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung. Để dùng GPA và mô phỏng, hãy mở “Hồ sơ học tập” → “Bảng điểm cá nhân”, lưu thông tin cá nhân và ít nhất một kết quả. Chỉ cần quản trị viên liên kết khi bạn muốn dùng dữ liệu trường hoặc tài liệu giới hạn theo ngành/khóa.</p>}
+      {isStudent && studentProfileLinked && <p role="status" className="chat-profile-status"><strong>Hồ sơ trường đã liên kết.</strong> Chatbot có thể dùng dữ liệu học vụ gắn với tài khoản của bạn. Nếu đồng thời có bảng điểm tự khai, hãy ghi rõ nguồn muốn sử dụng trong câu hỏi.</p>}
       {turns.length === 0 && (
       <div style={{ margin: '14px 0', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         <small style={{ display: 'block', marginBottom: '8px', color: '#475569', fontWeight: 600 }}>Gợi ý câu hỏi học vụ thường gặp trong phạm vi pilot (bấm để hỏi ngay):</small>

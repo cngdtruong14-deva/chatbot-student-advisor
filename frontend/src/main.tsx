@@ -449,21 +449,21 @@ function App() {
                     style={{ background: academicsTab === 'official' ? '#174d3b' : '#e2e8f0', color: academicsTab === 'official' ? '#fff' : '#334155' }}
                     onClick={() => setAcademicsTab('official')}
                   >
-                    Bảng điểm của bạn
+                    Dữ liệu trường {profile ? '· đã liên kết' : '· chưa liên kết'}
                   </button>
                   <button
                     type="button"
                     style={{ background: academicsTab === 'personal' ? '#174d3b' : '#e2e8f0', color: academicsTab === 'personal' ? '#fff' : '#334155' }}
                     onClick={() => setAcademicsTab('personal')}
                   >
-                    Bảng điểm cá nhân (Tự khai báo)
+                    Hồ sơ tự khai · có lưu
                   </button>
                   <button
                     type="button"
                     style={{ background: academicsTab === 'self_input' ? '#174d3b' : '#e2e8f0', color: academicsTab === 'self_input' ? '#fff' : '#334155' }}
                     onClick={() => setAcademicsTab('self_input')}
                   >
-                    + Tự nhập điểm & tín chỉ
+                    Tính nhanh · không lưu
                   </button>
                 </div>
               )}
@@ -559,7 +559,7 @@ function App() {
 
               {/* Subview: Personal Academics */}
               {academicsTab === 'personal' && (
-                <PersonalAcademics key={user.id} />
+                <PersonalAcademics key={user.id} officialProfileLinked={!!profile} />
               )}
 
               {/* Subview: Student Input */}
@@ -577,7 +577,33 @@ function App() {
                 ℹ️ {PRODUCT_CONFIG.ACADEMICS.WHAT_IF_DISCLOSURE}
               </div>
 
-              <div className="grid-two">
+              {user.role === 'student' && !profile && <>
+                <section className="panel academic-profile-status">
+                  <h2>Kế hoạch từ hồ sơ tự khai</h2>
+                  <p>Hệ thống dùng bảng điểm đã lưu theo tài khoản để tính mục tiêu GPA. Chatbot cũng đọc đúng nguồn này khi bạn hỏi GPA, điểm môn hoặc mô phỏng.</p>
+                  <p><strong>Giới hạn:</strong> chưa thể xác nhận môn được phép đăng ký, tiên quyết hoặc lớp đang mở vì tài khoản chưa liên kết dữ liệu trường.</p>
+                  <button type="button" onClick={() => { setAcademicsTab('personal'); navigate('academics'); }}>Kiểm tra hồ sơ tự khai →</button>
+                </section>
+                <div className="grid-two">
+                  <Calculator
+                    title="GPA mục tiêu từ bảng điểm tự khai"
+                    fields={[
+                      ["target_gpa", "GPA mục tiêu", "3.2", "4"],
+                      ["future_gpa_credits", "Tín chỉ GPA học mới", "30", "500"],
+                    ]}
+                    busy={busy}
+                    onRun={(body) => task(async () => setResult(await api('/account/required-gpa', body)))}
+                  />
+                  <section className="panel">
+                    <h3>Mô phỏng với chatbot</h3>
+                    <p className="muted">Chatbot có thể đọc các lần học đã lưu và mô phỏng mà không sửa dữ liệu.</p>
+                    <p>Ví dụ: “GPA của tôi”, “điểm môn 024”, “giả sử 30 tín chỉ tới đều đạt A”.</p>
+                    <button type="button" onClick={() => navigate('chat')}>Mở cố vấn AI →</button>
+                  </section>
+                </div>
+              </>}
+
+              {profile && <div className="grid-two">
                 <Calculator
                   title="GPA cần đạt"
                   fields={[
@@ -714,12 +740,12 @@ function App() {
                     })
                   }
                 />
-              </div>
+              </div>}
 
               {result && <Result data={result} />}
 
               {/* Course planning section */}
-              <section className="panel" style={{ marginTop: '20px' }}>
+              {profile && <section className="panel" style={{ marginTop: '20px' }}>
                 <h2>Đề xuất học phần học kỳ tới</h2>
                 <p className="muted">
                   Hệ thống tự động kiểm tra điều kiện tiên quyết, ưu tiên các môn bắt buộc chưa đạt. Giới hạn tối đa 18 tín chỉ/kỳ.
@@ -783,7 +809,7 @@ function App() {
                     )}
                   </div>
                 )}
-              </section>
+              </section>}
             </>
           )}
 

@@ -681,6 +681,27 @@ td b {
   letter-spacing: -0.02em;
   color: #bcdca7;
 }
+
+.academic-profile-status,
+.chat-profile-status {
+  margin: 10px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #bbd4c6;
+  border-radius: 8px;
+  background: #f1f8f4;
+  color: #174d3b;
+  line-height: 1.55;
+}
+
+.academic-profile-status > div + div {
+  margin-top: 5px;
+}
+
+.chat-profile-status-personal {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
 .intro > p:not(.eyebrow) {
   font-size: 14px;
   color: #9eb9aa;

@@ -39,11 +39,13 @@ class PersonalAcademicTests(unittest.TestCase):
         self.assertEqual(result.remaining_credits, '4.000000')
         self.assertEqual(result.data_origin, 'self_reported')
 
-    def test_unknown_date_does_not_invent_history_and_retake_does_not_rewrite_first_term(self):
+    def test_unknown_date_uses_declared_term_for_ui_without_claiming_complete_history(self):
         result = summarize(PersonalTranscript.model_validate(fixture()), 1)
         first = result.semester_history[0]
-        self.assertEqual(first.cumulative.gpa_4, '3.500000')
-        self.assertEqual(first.cumulative.gpa_10, '8.000000')
+        # The absent result has no exact date, but its declared T1 membership is
+        # enough for the self-reported term summary. Coverage remains partial.
+        self.assertEqual(first.cumulative.gpa_4, '2.100000')
+        self.assertEqual(first.cumulative.gpa_10, '4.800000')
         self.assertEqual(first.unknown_result_dates, 1)
         self.assertEqual(first.coverage, 'partial')
         self.assertIsNone(result.trend_4)
@@ -54,6 +56,19 @@ class PersonalAcademicTests(unittest.TestCase):
         result = summarize(PersonalTranscript.model_validate(payload), 1)
         self.assertEqual(result.summary.gpa_4, '2.100000')
         self.assertEqual(result.summary.pending_attempts, 1)
+
+    def test_term_gpa_remains_available_when_all_resolved_rows_lack_exact_dates(self):
+        payload = fixture()
+        for attempt in payload['attempts']:
+            if attempt['status'] != 'pending':
+                attempt['available_on'] = None
+        result = summarize(PersonalTranscript.model_validate(payload), 1)
+        self.assertEqual(result.semester_history[0].term.gpa_4, '2.100000')
+        self.assertEqual(result.semester_history[1].term.gpa_4, '2.100000')
+        self.assertEqual(result.semester_history[1].cumulative.gpa_4, '2.100000')
+        self.assertEqual(result.semester_history[0].coverage, 'partial')
+        self.assertEqual(result.semester_history[1].coverage, 'partial')
+        self.assertIsNone(result.trend_4)
 
     def test_absence_is_zero_but_pending_is_not_zero(self):
         payload = fixture()

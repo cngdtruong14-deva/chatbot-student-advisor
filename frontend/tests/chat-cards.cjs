@@ -8,11 +8,17 @@ const { createServer } = await import('vite');
 const server = await createServer({ root: path.join(__dirname, '..'), configFile: false, server: { middlewareMode: true }, appType: 'custom' });
 try {
 const chatSource = require('node:fs').readFileSync(path.join(__dirname, '..', 'src', 'Chat.tsx'), 'utf8');
+const mainSource = require('node:fs').readFileSync(path.join(__dirname, '..', 'src', 'main.tsx'), 'utf8');
 assert.match(chatSource, /className="chat-workspace"/);
 assert.match(chatSource, /className="chat-sidebar"/);
 assert.match(chatSource, /Lịch sử trò chuyện/);
 assert.match(chatSource, /Tài liệu truy xuất/);
 assert.match(chatSource, /Nguồn hiện tại: tài liệu UTT/);
+assert.match(chatSource, /Hồ sơ tự khai đang hoạt động/);
+assert.match(chatSource, /Chatbot có thể đọc bảng điểm đã lưu, tính GPA và mô phỏng/);
+assert.match(mainSource, /Kế hoạch từ hồ sơ tự khai/);
+assert.match(mainSource, /\/account\/required-gpa/);
+assert.match(mainSource, /chưa thể xác nhận môn được phép đăng ký, tiên quyết hoặc lớp đang mở/);
 assert.doesNotMatch(chatSource, /Trả lời từ tài liệu UTT/);
 assert.match(chatSource, /cards\.filter\(card => card\.type !== 'evidence'\)/);
 const { ChatCard } = await server.ssrLoadModule('/src/Chat.tsx');

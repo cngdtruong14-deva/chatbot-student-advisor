@@ -220,7 +220,12 @@ def summarize(transcript, revision):
     history = []
     terms = {t.code: t for t in transcript.terms}
     for t in sorted(transcript.terms, key=lambda t: (t.end_date, t.code)):
-        eligible = [a for a in transcript.attempts if a.available_on and a.available_on <= t.end_date
+        # A declared term is sufficient for a transparent term summary.  When
+        # the exact result date is unknown, use the declared term end only for
+        # this UI calculation; keep coverage=partial and never persist an
+        # invented event timestamp (or reuse it for temporal ML).
+        eligible = [a for a in transcript.attempts
+                    if (a.available_on or terms[a.term].end_date) <= t.end_date
                     and terms[a.term].start_date <= t.end_date]
         unknown = sum(a.status != 'pending' and a.available_on is None and terms[a.term].end_date <= t.end_date
                       for a in transcript.attempts)
@@ -245,7 +250,7 @@ def summarize(transcript, revision):
             'Điểm và ngày công bố do bạn tự khai; chưa được trường xác minh.',
             'Áp dụng ACADEMIC-DEMO-2.0.0, chưa khẳng định là quy chế UTT chính thức.',
             'Lần có kết quả mới nhất thay lần cũ, kể cả điểm thấp hơn; lần đang chờ không thay điểm cũ.',
-            'Không gán ngày cho kết quả thiếu ngày. Lịch sử chỉ dùng ngày công bố đã nhập.',
+            'Kết quả thiếu ngày được xếp theo học kỳ bạn đã khai để tính bảng lịch sử và luôn được đánh dấu chưa đầy đủ; hệ thống không lưu ngày giả hoặc dùng mốc suy ra này cho ML.',
             'Tiến độ chỉ là tín chỉ đã đạt so với tổng tự khai, chưa xác minh chương trình/tiên quyết.',
         ])
 

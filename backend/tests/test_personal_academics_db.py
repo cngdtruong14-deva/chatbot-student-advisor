@@ -99,6 +99,24 @@ class PersonalAcademicDBTests(unittest.TestCase):
         self.assertEqual(chat['cards'][0]['data']['summary'], rest['summary'])
         self.assertEqual(chat['cards'][0]['data']['academic_revision'], rest['academic_revision'])
 
+        # The ordinary user wording must resolve to the saved account-owned
+        # transcript even without an app.students link or an explicit source.
+        natural = dispatch('GPA của tôi hiện tại là bao nhiêu?', self.user)
+        self.assertEqual(natural['status'], 'completed')
+        self.assertEqual(natural['cards'][0]['data']['summary'], rest['summary'])
+
+    def test_personal_plan_uses_saved_transcript_and_course_plan_fails_closed(self):
+        from app.chat_service import dispatch
+        self.assertEqual(self.save().status_code, 200)
+        goal = self.client.post('/api/v1/account/required-gpa', json={
+            'target_gpa':'3', 'future_gpa_credits':'5'}).json()['data']
+        self.assertEqual(goal['academic_revision'], 1)
+        self.assertEqual(goal['required_future_gpa'], '3.900000')
+        recommendation = dispatch('gợi ý môn nên học', self.user)
+        self.assertEqual(recommendation['status'], 'needs_clarification')
+        self.assertEqual(recommendation['cards'], [])
+        self.assertIn('chưa đủ dữ liệu chương trình/tiên quyết', recommendation['answer'].lower())
+
     def test_chat_personal_whatif_followup_and_no_write(self):
         from app.chat_service import dispatch
         self.assertEqual(self.save().status_code, 200)

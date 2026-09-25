@@ -7,7 +7,7 @@ import type { PersonalTranscript_Input as PersonalTranscript, PersonalAttempt_In
 const fmt = (v: string | null | undefined) => v == null ? 'Chưa có' : Number(v).toLocaleString('vi-VN', {maximumFractionDigits: 3});
 const empty = (): PersonalTranscript => ({policy_version: 'ACADEMIC-DEMO-2.0.0', terms: [], attempts: [], required_credits: null});
 
-export function PersonalAcademics() {
+export function PersonalAcademics({ officialProfileLinked = false }: { officialProfileLinked?: boolean }) {
   const [draft, setDraft] = useState<PersonalTranscript>(empty);
   const [revision, setRevision] = useState(0), [busy, setBusy] = useState(true);
   const [message, setMessage] = useState(''), [dirty, setDirty] = useState(false);
@@ -36,10 +36,15 @@ export function PersonalAcademics() {
   }
   return <section className="panel">
     <h2>Bảng điểm cá nhân tự khai báo</h2>
+    <div className="academic-profile-status" role="status">
+      <div><strong>1. Tài khoản:</strong> Đã đăng nhập</div>
+      <div><strong>2. Hồ sơ tự khai:</strong> {revision > 0 && attempts.length > 0 ? `Đang hoạt động · phiên bản ${revision} · chatbot có thể dùng để tính GPA` : 'Chưa hoàn tất · hãy lưu thông tin cá nhân và bảng điểm'}</div>
+      <div><strong>3. Dữ liệu trường:</strong> {officialProfileLinked ? 'Đã liên kết với hồ sơ học vụ' : 'Chưa liên kết/xác minh · không ảnh hưởng việc dùng bảng điểm tự khai'}</div>
+    </div>
     <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', margin: '8px 0 14px', fontSize: '13px', color: '#92400e' }}>
       <strong>Lưu ý:</strong> {PRODUCT_CONFIG.ACADEMICS.SELF_REPORTED_DISCLOSURE} {PRODUCT_CONFIG.ACADEMICS.POLICY_DEMO_DISCLOSURE}
     </div>
-    <details><summary>Thông tin cá nhân & chuyên ngành</summary><PersonalOnboarding /></details>
+    <details><summary><strong>Bước 1 — Thông tin cá nhân, ngành và khóa</strong></summary><PersonalOnboarding /></details>
     <p style={{ fontSize: '13px', color: dirty ? '#b45309' : '#64748b' }}>
       {dirty ? '● Có thay đổi chưa lưu. Kết quả tính toán bên dưới chưa bao gồm các thay đổi này.' : 'Đang xem dữ liệu đã lưu trong hồ sơ cá nhân.'}
     </p>
@@ -53,7 +58,7 @@ export function PersonalAcademics() {
       <fieldset disabled={busy} style={{border: 0}}>
         <label>Tổng tín chỉ chương trình (nếu biết)<input type="number" min="0.000001" max="500" step="0.000001" value={draft.required_credits ?? ''}
           onChange={e => change({...draft, required_credits: e.target.value || null})} /></label>
-        <h3>Học kỳ</h3>
+        <h3>Bước 2 — Khai báo học kỳ</h3>
         {terms.map((t,i) => <div className="grid-two" key={i}>
           <label>Mã kỳ<input required pattern="[A-Za-z0-9_-]{1,40}" value={t.code} onChange={e => {
             const code=e.target.value; change({...draft, terms: terms.map((x,j)=>j===i?{...x,code}:x), attempts: attempts.map(a=>a.term===t.code?{...a,term:code}:a)});
@@ -63,7 +68,7 @@ export function PersonalAcademics() {
           <button type="button" disabled={attempts.some(a=>a.term===t.code)} onClick={()=>change({...draft,terms:terms.filter((_,j)=>j!==i)})}>Bỏ kỳ trống</button>
         </div>)}
         <button type="button" disabled={terms.length>=50} onClick={()=>change({...draft,terms:[...terms,{code:'',start_date:'',end_date:''}]})}>Thêm học kỳ</button>
-        <h3>Các lần học</h3>
+        <h3>Bước 3 — Nhập môn học và kết quả</h3>
         <p>Học lại giữ nguyên mã môn và tăng số lần học. PE101/PE201/PE301/GEN402 không tính GPA; vẫn phải đạt. Vắng/cấm thi có điểm hiệu lực 0 cho đến khi có lần học mới.</p>
         {attempts.map((a,i)=><div className="panel" key={i}>
           <div className="grid-two">
@@ -83,12 +88,13 @@ export function PersonalAcademics() {
         <button type="button" onClick={()=>void task(async()=>setSimulation(await api<PersonalSimulationResult>('/account/simulations',{expected_revision:revision,transcript:draft})))}>Tính what-if, không lưu</button>
       </fieldset>
     </form>
-    {summary && <><h3>Kết quả đã lưu</h3><p>GPA {fmt(summary.summary.gpa_4)}/4 · {fmt(summary.summary.gpa_10)}/10</p>
+    {summary && <><h3>Bước 4 — Kết quả đã lưu</h3><p>GPA {fmt(summary.summary.gpa_4)}/4 · {fmt(summary.summary.gpa_10)}/10</p>
       <p>Tín chỉ GPA: {fmt(summary.summary.gpa_credits)} · Tín chỉ đạt: {fmt(summary.summary.earned_credits)} · Còn lại theo tổng tự khai: {fmt(summary.remaining_credits)}</p>
       <p>Môn chưa đạt: {summary.summary.incomplete_courses.join(', ') || 'Không có kết quả chưa đạt'}. Lần học đang chờ: {summary.summary.pending_attempts}.</p>
-      <p>Thay đổi GPA tích lũy giữa hai kỳ đủ dữ liệu gần nhất liền nhau: {fmt(summary.trend_4)} /4; {fmt(summary.trend_10)} /10.</p>
-      <h3>Lịch sử học kỳ</h3><table><thead><tr><th>Kỳ</th><th>GPA kỳ /4</th><th>GPA kỳ /10</th><th>Tích lũy /4</th><th>Tích lũy /10</th><th>Thiếu ngày / đang chờ</th></tr></thead><tbody>
+      <p>Thay đổi GPA tích lũy giữa hai kỳ liền nhau có đủ ngày kết quả: {fmt(summary.trend_4)} /4; {fmt(summary.trend_10)} /10.</p>
+      <h3>Lịch sử học kỳ</h3><table><thead><tr><th>Kỳ</th><th>GPA kỳ /4</th><th>GPA kỳ /10</th><th>Tích lũy /4</th><th>Tích lũy /10</th><th>Lũy kế thiếu ngày / đang chờ</th></tr></thead><tbody>
       {summary.semester_history.map(t=><tr key={t.code}><td>{t.code}</td><td>{fmt(t.term.gpa_4)}</td><td>{fmt(t.term.gpa_10)}</td><td>{fmt(t.cumulative.gpa_4)}</td><td>{fmt(t.cumulative.gpa_10)}</td><td>{t.unknown_result_dates} / {t.pending_results}</td></tr>)}</tbody></table>
+      <p className="muted">GPA kỳ được nhóm theo học kỳ đã khai. “Thiếu ngày” không làm mất điểm khỏi bảng kỳ, nhưng kỳ đó vẫn mang trạng thái chưa đầy đủ và không được dùng làm lịch sử ML theo thời gian.</p>
       {summary.warnings.map(w=><p className="muted" key={w}>{w}</p>)}</>}
     {simulation && <section role="status"><h3>What-if — chưa lưu</h3><p>GPA /4: {fmt(simulation.before.summary.gpa_4)} → {fmt(simulation.after.summary.gpa_4)}; /10: {fmt(simulation.before.summary.gpa_10)} → {fmt(simulation.after.summary.gpa_10)}</p></section>}
     <form onSubmit={e=>{e.preventDefault();void task(async()=>setGoal(await api<PersonalGoalResult>('/account/required-gpa',{expected_revision:revision,target_gpa:target,future_gpa_credits:future})));}}>
