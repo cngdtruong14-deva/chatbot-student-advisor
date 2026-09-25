@@ -19,6 +19,7 @@ from app.rag_runtime import (
     EFFECTIVE_DATE_UNVERIFIED,
     HIGH_STAKES_RETRIEVAL_ONLY,
     HIGH_STAKES_APPROVAL_PROTOCOL,
+    OPERATIONAL_REBIND_PROTOCOL,
     RUNTIME_APPROVAL_PROTOCOL,
     CAPSTONE_WAIVER_PROTOCOL,
     RuntimeDecision,
@@ -162,6 +163,38 @@ def write_high_stakes_approval(directory: Path, base_path: Path, context: dict) 
     return path
 
 
+def attach_operational_rebind(path: Path) -> None:
+    approval = json.loads(path.read_text(encoding="utf-8"))
+    old_hash = approval["approval_sha256"]
+    current_prompt = approval["generation"]["prompt_sha256"]
+    approval["operational_rebind"] = {
+        "protocol": OPERATIONAL_REBIND_PROTOCOL,
+        "approved": True,
+        "owner": approval["owner"],
+        "approved_at": "2026-09-25T00:00:00Z",
+        "scope": "capstone_demo_only",
+        "base_runtime_approval_sha256": old_hash,
+        "base_prompt_sha256": "d" * 64,
+        "prompt_version": approval["generation"]["prompt_version"],
+        "prompt_sha256": current_prompt,
+        "source_commit": "e" * 40,
+        "regression": {
+            "isolated_tests_total": 37,
+            "isolated_tests_passed": 37,
+            "false_abstention_case": "utt_it_output_standard_exemption",
+        },
+        "risk_controls": {
+            "citations_required": True,
+            "fail_closed": True,
+            "same_evidence_on_retry": True,
+            "benchmark_result_unchanged": True,
+            "real_provider_smoke_required_before_cutover": True,
+        },
+    }
+    approval["approval_sha256"] = canonical_hash(approval, omit=("approval_sha256",))
+    path.write_text(json.dumps(approval), encoding="utf-8")
+
+
 class ControlledRetrievalModeTests(unittest.TestCase):
     def configured_env(self, **extra):
         values = {
@@ -203,6 +236,39 @@ class ControlledRetrievalModeTests(unittest.TestCase):
         self.assertTrue(decision.generation_allowed)
         self.assertEqual(decision.response_mode, "grounded_generation")
         self.assertEqual(decision.rag_mode, "approved_grounded")
+
+    def test_owner_approved_operational_rebind_preserves_generation_gate(self):
+        items = [chunk()]
+        with tempfile.TemporaryDirectory() as raw, self.configured_env():
+            directory = Path(raw)
+            receipt_path = write_release_receipt(directory, items)
+            approval_path = write_approval(directory, release_context(items, receipt_path=receipt_path))
+            attach_operational_rebind(approval_path)
+            decision = decide_generation(
+                query="Lịch đăng ký học phần thế nào?", matches=[{"chunk": items[0], "score": 0.9}],
+                corpus_scope="utt_corpus", method="dense", chunks=items,
+                approval_path=approval_path, receipt_path=receipt_path,
+            )
+        self.assertTrue(decision.generation_allowed)
+
+    def test_operational_rebind_fails_closed_when_control_is_removed(self):
+        items = [chunk()]
+        with tempfile.TemporaryDirectory() as raw, self.configured_env():
+            directory = Path(raw)
+            receipt_path = write_release_receipt(directory, items)
+            approval_path = write_approval(directory, release_context(items, receipt_path=receipt_path))
+            attach_operational_rebind(approval_path)
+            approval = json.loads(approval_path.read_text(encoding="utf-8"))
+            approval["operational_rebind"]["risk_controls"]["same_evidence_on_retry"] = False
+            approval["approval_sha256"] = canonical_hash(approval, omit=("approval_sha256",))
+            approval_path.write_text(json.dumps(approval), encoding="utf-8")
+            decision = decide_generation(
+                query="Lịch đăng ký học phần thế nào?", matches=[{"chunk": items[0], "score": 0.9}],
+                corpus_scope="utt_corpus", method="dense", chunks=items,
+                approval_path=approval_path, receipt_path=receipt_path,
+            )
+        self.assertFalse(decision.generation_allowed)
+        self.assertEqual(decision.reason, "RAG_RUNTIME_APPROVAL_INVALID")
 
     def test_high_stakes_query_stays_retrieval_only_despite_approval(self):
         items = [chunk()]

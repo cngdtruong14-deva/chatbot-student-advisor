@@ -1,0 +1,192 @@
+name: Deploy RAG Prompt Hotfix
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type APPROVE PROMPT HOTFIX + V4 OPERATIONAL REBIND
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: azure-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'APPROVE PROMPT HOTFIX + V4 OPERATIONAL REBIND'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RESOURCE_GROUP: rg-advisor-staging-5c4702
+      CONTAINER_APP: ca-advisor-staging-5c4702
+      ACR_NAME: cradvisorstaging5c4702
+      STORAGE_ACCOUNT: stadvisorstaging5c4702
+      FILE_SHARE: runtime-files
+      RUNTIME_PATH: stage7/benchmark_v4/rag_runtime_approval_capstone_v4.signed.json
+      HIGH_STAKES_PATH: stage7/benchmark_v4/rag_high_stakes_grounded_capstone_v4.signed.json
+      PROMPT_VERSION: v4-operational-hotfix-1
+      PUBLIC_ORIGIN: https://cngdtruong.id.vn
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a successful release gate for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="$(
+            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release-gate.yml/runs?per_page=100" |
+              jq -r --arg sha "$GITHUB_SHA" '
+                .workflow_runs[]
+                | select(.head_sha == $sha and .event == "workflow_dispatch" and .status == "completed" and .conclusion == "success")
+                | .id
+              ' | head -n 1
+          )"
+          test -n "$run_id"
+          echo "Release gate PASS: ${run_id}"
+
+      - name: Azure login with GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Container Apps CLI extension
+        run: az extension add --name containerapp --upgrade --only-show-errors
+
+      - name: Build and push immutable images
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA:0:7}"
+          login_server="$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query loginServer -o tsv)"
+          az acr login --name "$ACR_NAME" --only-show-errors
+          api_image="${login_server}/advisor-api:${short_sha}"
+          web_image="${login_server}/advisor-web:${short_sha}"
+          docker build --pull=false --file backend/Dockerfile --tag "$api_image" .
+          docker build --pull=false --file frontend/Dockerfile --tag "$web_image" frontend
+          docker push "$api_image"
+          docker push "$web_image"
+          {
+            echo "API_IMAGE=$api_image"
+            echo "WEB_IMAGE=$web_image"
+            echo "REVISION_SUFFIX=rag-hotfix-${short_sha}"
+          } >> "$GITHUB_ENV"
+
+      - name: Create owner-approved operational rebind
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$(az storage account keys list --resource-group "$RESOURCE_GROUP" --account-name "$STORAGE_ACCOUNT" --query '[0].value' -o tsv)"
+          echo "::add-mask::$key"
+          umask 077
+          printf '%s' "$key" > "$RUNNER_TEMP/storage-key"
+          az storage file download --account-name "$STORAGE_ACCOUNT" --account-key "$key" --share-name "$FILE_SHARE" --path "$RUNTIME_PATH" --dest "$RUNNER_TEMP/runtime.before.json" --only-show-errors
+          az storage file download --account-name "$STORAGE_ACCOUNT" --account-key "$key" --share-name "$FILE_SHARE" --path "$HIGH_STAKES_PATH" --dest "$RUNNER_TEMP/high-stakes.before.json" --only-show-errors
+          docker run --rm \
+            --env PYTHONPATH=/app \
+            --mount "type=bind,src=$RUNNER_TEMP,dst=/work" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/ops/rebind_rag_prompt_hotfix.py,dst=/rebind.py,readonly" \
+            "$API_IMAGE" python /rebind.py \
+              --runtime-input /work/runtime.before.json \
+              --high-stakes-input /work/high-stakes.before.json \
+              --runtime-output /work/runtime.candidate.json \
+              --high-stakes-output /work/high-stakes.candidate.json \
+              --metadata-output /work/rebind-metadata.json \
+              --source-commit "$GITHUB_SHA" \
+              --prompt-version "$PROMPT_VERSION" \
+              --confirm "${{ inputs.confirmation }}"
+          jq -e --arg sha "$GITHUB_SHA" --arg version "$PROMPT_VERSION" \
+            '.source_commit == $sha and .prompt_version == $version and .status == "OPERATIONAL_REBIND_CREATED"' \
+            "$RUNNER_TEMP/rebind-metadata.json" >/dev/null
+
+      - name: Rebind, deploy, health-check and run real Gemini smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          STORAGE_KEY="$(cat "$RUNNER_TEMP/storage-key")"
+          echo "::add-mask::$STORAGE_KEY"
+          before="$RUNNER_TEMP/containerapp-before.json"
+          candidate="$RUNNER_TEMP/containerapp-candidate.json"
+          rollback="$RUNNER_TEMP/containerapp-rollback.json"
+          runtime_updated=0
+          app_updated=0
+
+          restore_runtime() {
+            az storage file upload --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" --share-name "$FILE_SHARE" --source "$RUNNER_TEMP/runtime.before.json" --path "$RUNTIME_PATH" --overwrite true --only-show-errors || true
+            az storage file upload --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" --share-name "$FILE_SHARE" --source "$RUNNER_TEMP/high-stakes.before.json" --path "$HIGH_STAKES_PATH" --overwrite true --only-show-errors || true
+          }
+          restore_app() {
+            jq --arg suffix "rollback-${GITHUB_RUN_ID}" '.properties.template.revisionSuffix = $suffix' "$before" > "$rollback"
+            az containerapp update --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --yaml "$rollback" --output none || true
+          }
+          on_error() {
+            [ "$app_updated" -eq 0 ] || restore_app
+            [ "$runtime_updated" -eq 0 ] || restore_runtime
+            rm -f "$RUNNER_TEMP/storage-key"
+          }
+          trap on_error ERR
+
+          az containerapp show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --output json > "$before"
+          short_sha="${GITHUB_SHA:0:7}"
+          az storage file upload --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" --share-name "$FILE_SHARE" --source "$RUNNER_TEMP/runtime.before.json" --path "${RUNTIME_PATH%.json}.pre-${short_sha}.json" --overwrite false --only-show-errors
+          az storage file upload --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" --share-name "$FILE_SHARE" --source "$RUNNER_TEMP/high-stakes.before.json" --path "${HIGH_STAKES_PATH%.json}.pre-${short_sha}.json" --overwrite false --only-show-errors
+          az storage file upload --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" --share-name "$FILE_SHARE" --source "$RUNNER_TEMP/runtime.candidate.json" --path "$RUNTIME_PATH" --overwrite true --only-show-errors
+          az storage file upload --account-name "$STORAGE_ACCOUNT" --account-key "$STORAGE_KEY" --share-name "$FILE_SHARE" --source "$RUNNER_TEMP/high-stakes.candidate.json" --path "$HIGH_STAKES_PATH" --overwrite true --only-show-errors
+          runtime_updated=1
+
+          jq -e '[.properties.template.containers[].name] | sort == ["api", "web"]' "$before" >/dev/null
+          jq -e '.properties.template.containers[] | select(.name == "api") | .env[] | select(.name == "RAG_LLM_PROMPT_VERSION")' "$before" >/dev/null
+          jq --arg api "$API_IMAGE" --arg web "$WEB_IMAGE" --arg suffix "$REVISION_SUFFIX" --arg prompt "$PROMPT_VERSION" '
+            .properties.template.revisionSuffix = $suffix
+            | .properties.template.containers |= map(
+                if .name == "api" then
+                  .image = $api
+                  | .env |= map(if .name == "RAG_LLM_PROMPT_VERSION" then .value = $prompt | del(.secretRef) else . end)
+                elif .name == "web" then .image = $web
+                else . end
+              )
+          ' "$before" > "$candidate"
+          az containerapp update --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --yaml "$candidate" --output none
+          app_updated=1
+          revision="$(az containerapp show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --query properties.latestRevisionName -o tsv)"
+          ready=0
+          for attempt in $(seq 1 30); do
+            state="$(az containerapp revision show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --revision "$revision" --query properties.healthState -o tsv 2>/dev/null || true)"
+            echo "Revision ${revision}: ${state:-Pending} (${attempt}/30)"
+            if [ "$state" = "Healthy" ]; then ready=1; break; fi
+            if [ "$state" = "Unhealthy" ] || [ "$state" = "Failed" ]; then break; fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/healthz" >/dev/null
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/health/live" >/dev/null
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 "$PUBLIC_ORIGIN/health/ready" >/dev/null
+
+          smoke="$(timeout 90s az containerapp exec --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" --revision "$revision" --container api --command "python -m app.grounded_smoke" 2>&1)"
+          printf '%s\n' "$smoke"
+          grep -q '"passed": true' <<< "$smoke"
+
+          app_updated=0
+          runtime_updated=0
+          rm -f "$RUNNER_TEMP/storage-key"
+          trap - ERR
+          echo "DEPLOYED_REVISION=$revision" >> "$GITHUB_ENV"
+
+      - name: Deployment receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          az containerapp show --name "$CONTAINER_APP" --resource-group "$RESOURCE_GROUP" \
+            --query '{latestRevision:properties.latestRevisionName,readyRevision:properties.latestReadyRevisionName,containers:properties.template.containers[].{name:name,image:image}}' --output json
+          echo "Application: $PUBLIC_ORIGIN"

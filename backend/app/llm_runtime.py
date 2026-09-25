@@ -35,10 +35,28 @@ SYSTEM_PROMPT = (
     "Mỗi claim phải có citation_id từ EVIDENCE."
 )
 
+# A second call is made only after the provider has returned a syntactically
+# valid abstention despite receiving retrieved evidence.  The retry stays
+# citation-constrained, but asks the model to distinguish a conditional answer
+# (including "not automatic") from a genuinely unsupported answer.  Keep this
+# text in the prompt hash below: changing retry semantics is a governed prompt
+# change, not an invisible implementation detail.
+ABSTENTION_RETRY_PROMPT = (
+    "\n\nKIỂM TRA LẠI SAU KHI ĐÃ TRẢ NULL:\n"
+    "Không trả null chỉ vì QUESTION dùng cách nói khác EVIDENCE. "
+    "Nếu EVIDENCE nêu nguyên tắc chung, điều kiện, ngoại lệ hoặc trường hợp "
+    "được công nhận có liên quan, hãy trả lời có điều kiện và nêu rõ điều gì "
+    "không được tự động suy ra. Ví dụ, phân biệt được công nhận khi đủ "
+    "điều kiện với được miễn tự động. Chỉ tiếp tục trả "
+    "{\"answer\":null,\"claims\":[]} khi không thể tạo ít nhất một claim được "
+    "EVIDENCE hỗ trợ trực tiếp. Mọi claim vẫn phải dùng citation_id hợp lệ."
+)
+
 
 def prompt_sha256() -> str:
     """Return the exact prompt identity required by approval records."""
-    return hashlib.sha256(SYSTEM_PROMPT.encode("utf-8")).hexdigest()
+    contract = SYSTEM_PROMPT + "\n---ABSTENTION-RETRY---\n" + ABSTENTION_RETRY_PROMPT
+    return hashlib.sha256(contract.encode("utf-8")).hexdigest()
 
 
 def _clean_json_text(value: str) -> str:
@@ -153,7 +171,7 @@ class OpenAICompatibleProvider:
                 # prompt still defines the envelope and the validator below remains
                 # authoritative for citations and abstentions.
                 "response_format": {"type": "json_object"}, "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SYSTEM_PROMPT + (ABSTENTION_RETRY_PROMPT if _abstention_retry else "")},
             {"role": "user", "content": "QUESTION:\n" + question + "\n\nEVIDENCE:\n" + json.dumps(evidence, ensure_ascii=False)},
         ]}
         try:
@@ -261,9 +279,10 @@ class OpenAICompatibleProvider:
             # they must never become factual output or cause a false provider failure.
             if 'answer' in data and answer is None and isinstance(claims, list):
                 if not _abstention_retry:
-                    # Gemini can occasionally emit a conservative null despite the
-                    # same frozen evidence supporting a cited answer. Retry exactly
-                    # once with the identical prompt/evidence. The second null still
+                    # Gemini can emit a conservative null when the question uses a
+                    # different expression for a conditional rule in the evidence.
+                    # Retry exactly once with the governed clarification above and
+                    # the same evidence/citation allow-list. The second null still
                     # fails closed; no local answer is synthesized.
                     return self._generate(question, matches, prompt_version=prompt_version,
                                           _abstention_retry=True, request_id=request_id, deadline=deadline)

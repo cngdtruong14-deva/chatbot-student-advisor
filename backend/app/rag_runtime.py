@@ -26,6 +26,7 @@ from typing import Any, Iterable, Mapping
 RUNTIME_APPROVAL_PROTOCOL = "rag_runtime_quality_v2"
 CAPSTONE_WAIVER_PROTOCOL = "capstone_demo_quality_waiver_v1"
 HIGH_STAKES_APPROVAL_PROTOCOL = "capstone_high_stakes_grounded_v1"
+OPERATIONAL_REBIND_PROTOCOL = "rag_prompt_operational_rebind_v1"
 RUNTIME_APPROVAL_FILENAME = "rag_runtime_approval_v2.json"
 HIGH_STAKES_APPROVAL_FILENAME = "rag_high_stakes_grounded_capstone_v4.signed.json"
 RECEIPT_FILENAME = "release_v2_receipt.json"
@@ -333,6 +334,39 @@ def _approval_matches(
     from app.llm_runtime import prompt_sha256
     if generation.get("prompt_sha256") != prompt_sha256():
         return False, APPROVAL_PROMPT_MISMATCH
+    rebind = approval.get("operational_rebind")
+    if rebind is not None:
+        if not isinstance(rebind, Mapping) or rebind.get("protocol") != OPERATIONAL_REBIND_PROTOCOL:
+            return False, APPROVAL_INVALID
+        if rebind.get("approved") is not True or rebind.get("scope") != "capstone_demo_only":
+            return False, APPROVAL_INVALID
+        if rebind.get("owner") != approval.get("owner") or not rebind.get("approved_at"):
+            return False, APPROVAL_INVALID
+        if not SHA256_RE.fullmatch(str(rebind.get("base_runtime_approval_sha256") or "")):
+            return False, APPROVAL_INVALID
+        if not SHA256_RE.fullmatch(str(rebind.get("base_prompt_sha256") or "")):
+            return False, APPROVAL_INVALID
+        if rebind.get("base_prompt_sha256") == generation.get("prompt_sha256"):
+            return False, APPROVAL_INVALID
+        if rebind.get("prompt_sha256") != generation.get("prompt_sha256"):
+            return False, APPROVAL_PROMPT_MISMATCH
+        if rebind.get("prompt_version") != generation.get("prompt_version"):
+            return False, APPROVAL_PROMPT_MISMATCH
+        if not re.fullmatch(r"[0-9a-f]{40}", str(rebind.get("source_commit") or "")):
+            return False, APPROVAL_INVALID
+        regression = rebind.get("regression")
+        if not isinstance(regression, Mapping):
+            return False, APPROVAL_INVALID
+        if regression.get("isolated_tests_passed") != regression.get("isolated_tests_total") or regression.get("isolated_tests_total") != 37:
+            return False, APPROVAL_INVALID
+        if regression.get("false_abstention_case") != "utt_it_output_standard_exemption":
+            return False, APPROVAL_INVALID
+        controls = rebind.get("risk_controls")
+        if not isinstance(controls, Mapping) or any(controls.get(name) is not True for name in (
+            "citations_required", "fail_closed", "same_evidence_on_retry",
+            "benchmark_result_unchanged", "real_provider_smoke_required_before_cutover",
+        )):
+            return False, APPROVAL_INVALID
     if generation.get("temperature") != 0 or generation.get("max_output_tokens") != 1200:
         return False, APPROVAL_INVALID
     if generation.get("provider") != provider["provider"] or generation.get("model") != provider["model"]:

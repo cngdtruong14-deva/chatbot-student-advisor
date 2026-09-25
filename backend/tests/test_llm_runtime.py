@@ -203,7 +203,7 @@ class LLMRuntimeTests(unittest.TestCase):
         provider=OpenAICompatibleProvider(self.config(),self.transport({'choices':[{'message':{'content':content}}]}))
         self.assertEqual(provider.generate('x',[match()]),{'status':'insufficient_evidence','answer':None,'claims':[]})
 
-    def test_null_answer_retries_once_with_identical_frozen_prompt(self):
+    def test_null_answer_retries_once_with_governed_clarification_and_same_evidence(self):
         calls=[]
         null_content=json.dumps({'answer':None,'claims':[]})
         valid=json.dumps({'answer':'supported','claims':[{'text':'supported','citation_ids':['chunk-1']}]})
@@ -214,7 +214,11 @@ class LLMRuntimeTests(unittest.TestCase):
         result=OpenAICompatibleProvider(self.config(),httpx.MockTransport(respond)).generate('x',[match()])
         self.assertEqual(result['status'],'completed')
         self.assertEqual(len(calls),2)
-        self.assertEqual(calls[0]['messages'],calls[1]['messages'])
+        self.assertEqual(calls[0]['messages'][1],calls[1]['messages'][1])
+        self.assertNotEqual(calls[0]['messages'][0],calls[1]['messages'][0])
+        self.assertIn('Không trả null chỉ vì QUESTION dùng cách nói khác EVIDENCE',
+                      calls[1]['messages'][0]['content'])
+        self.assertIn('được miễn tự động',calls[1]['messages'][0]['content'])
         self.assertEqual(calls[0]['max_tokens'],calls[1]['max_tokens'])
 
     def test_citations_must_be_in_actual_prompt(self):
