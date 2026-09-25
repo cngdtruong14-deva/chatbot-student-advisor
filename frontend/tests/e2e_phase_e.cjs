@@ -270,7 +270,7 @@ function record(id, name, passed, details) {
     await page.getByLabel('Email', { exact: true }).fill('unlinked@demo.local');
     await page.getByLabel('Mật khẩu', { exact: true }).fill(unlinkedPassword);
     await page.getByRole('button', { name: 'Vào không gian học tập →' }).click();
-    await page.getByText('Tài khoản chưa liên kết hồ sơ học vụ').waitFor({ timeout: 10000 });
+    await page.getByText('Chưa có hồ sơ học tập cá nhân.').waitFor({ timeout: 10000 });
     await page.getByRole('button', { name: 'Trợ lý học tập' }).click();
     await page.getByText(/Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung/).waitFor();
 

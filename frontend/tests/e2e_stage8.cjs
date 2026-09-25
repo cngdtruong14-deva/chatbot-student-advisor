@@ -156,7 +156,8 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     await login('unlinked@demo.local', password, 'Nhìn rõ hiện tại. Đi xa hơn.');
     await page.getByRole('heading', { name: 'Bắt đầu với bảng điểm cá nhân' }).waitFor();
     await page.locator('aside nav').getByRole('button', { name: 'Hỏi cố vấn AI' }).click();
-    await page.getByText(/Tài khoản chưa liên kết hồ sơ học vụ/).waitFor();
+    await page.getByText(/Chưa có hồ sơ học tập cá nhân/).waitFor();
+    await page.getByText(/Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung/).waitFor();
     await logout();
 
     if (pageErrors.length) throw new Error(`Browser errors: ${pageErrors.join('; ')}`);
