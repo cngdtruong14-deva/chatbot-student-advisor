@@ -1,8 +1,8 @@
 """Allow every student account to own a self-reported transcript directly."""
 from alembic import op
 
-revision = "0017_direct_transcript_owner"
-down_revision = "0016_career_skills"
+revision = "0018_direct_transcript_owner"
+down_revision = "0017_pilot_cohort"
 branch_labels = depends_on = None
 
 
