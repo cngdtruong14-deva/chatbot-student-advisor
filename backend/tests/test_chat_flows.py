@@ -44,6 +44,19 @@ class IntentTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(intent(text), expected)
 
+    def test_gpa_planning_uses_question_structure_not_first_keyword(self):
+        cases = {
+            'mô phỏng tự khai đạt mục tiêu gpa 3.2 với 45 tín chỉ': 'required_gpa',
+            'tôi cần đạt trung bình bao nhiêu trong 45 tín chỉ để GPA lên 3.2': 'required_gpa',
+            'mô phỏng nếu tôi đạt được 3.2 ở 45 tín chỉ thì sao': 'simulate',
+            'giả sử 45 tín chỉ tới đạt 3.2 thì GPA sẽ là bao nhiêu': 'simulate',
+            'giả định mục tiêu GPA 3.2 với 45 tín chỉ': 'gpa_plan_ambiguous',
+            'ngành Xây dựng cần bao nhiêu tín chỉ?': 'knowledge_search',
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(intent(text), expected)
+
     def test_bounded_followup_phrases(self):
         for text in ('Lần 2 thì sao?', 'Ý em là kỳ DEMO-T5', 'không biết', '49 tín'):
             with self.subTest(text=text):

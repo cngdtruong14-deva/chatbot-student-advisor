@@ -1,4 +1,5 @@
 """Bounded deterministic orchestration. No private academic data goes to a provider."""
+import logging
 import re
 import unicodedata
 from datetime import datetime, timedelta, timezone
@@ -20,6 +21,7 @@ RAG_TOPICS = (
     ('career', ('nghe nghiep', 'dinh huong nghe', 'ky nang nghe', 'skill gap', 'lo trinh nghe')),
     ('partner_jobs', ('viec lam', 'tuyen dung', 'doanh nghiep', 'doi tac', 'thuc tap')),
 )
+logger = logging.getLogger('advisor.chat')
 
 
 def normalize(text):
@@ -44,6 +46,56 @@ def _policy_question(text):
     ))
 
 
+def gpa_planning_intent(text):
+    """Score GPA goal-seeking and forward-projection structure.
+
+    A single word such as ``mo phong`` must not win merely because its branch
+    appears first. Strong question structure wins; close competing signals are
+    returned as ambiguous so dispatch can ask the user to distinguish the two
+    mathematically different operations.
+    """
+    t = canonical_student_text(text)
+    if ('gpa' not in t and not any(term in t for term in (
+            'trung binh', 'mo phong', 'what-if', 'gia dinh', 'gia su', 'keo ', 'nang ', 'cham '))):
+        return None
+    required_score = 0
+    simulate_score = 0
+
+    if re.search(r'\b(?:can|phai)\b.*\b(?:bao nhieu|trung binh(?: may| bao nhieu)?)\b', t):
+        required_score += 6
+    if re.search(r'\b(?:bao nhieu|trung binh bao nhieu)\b.*\b(?:de|cho)\b.*\b(?:dat|cham|len)\b', t):
+        required_score += 6
+    if any(term in t for term in ('dat muc tieu gpa', 'muc tieu gpa', 'gpa muc tieu')):
+        required_score += 4
+    if re.search(r'\b(?:keo|nang)\b.*\bgpa\b', t):
+        required_score += 3
+    if re.search(r'\bde\b.*\b(?:dat|cham|len)\b.*\bgpa\b', t):
+        required_score += 3
+
+    if re.search(r'\bneu\b.+\b(?:thi|se|thanh|ra|the nao|bao nhieu)\b', t):
+        simulate_score += 6
+    if any(term in t for term in ('gia dinh', 'gia su', 'what-if')):
+        simulate_score += 3
+    if 'mo phong' in t:
+        simulate_score += 2
+    if re.search(r'\bgpa\b.*\b(?:se|thanh|du kien)\b.*\b(?:bao nhieu|the nao|may)\b', t):
+        simulate_score += 3
+
+    if required_score and simulate_score and abs(required_score - simulate_score) <= 1:
+        selected = 'gpa_plan_ambiguous'
+    elif required_score > simulate_score:
+        selected = 'required_gpa'
+    elif simulate_score:
+        selected = 'simulate'
+    else:
+        selected = None
+    if required_score or simulate_score:
+        # Privacy boundary: record routing metadata, never the student's text.
+        logger.info('gpa_intent selected=%s required_score=%s simulate_score=%s',
+                    selected, required_score, simulate_score)
+    return selected
+
+
 def intent(text):
     t = canonical_student_text(text)
     # Policy questions containing the word GPA must not be hijacked by the
@@ -66,6 +118,9 @@ def intent(text):
             or re.search(r'\bmon\b.+\b(?:bao nhieu diem|duoc may diem|duoc bao nhieu|ket qua(?: the nao)?)\b', t)
             or re.search(r'\b[a-z]{2,}[a-z0-9_-]*\d[a-z0-9_-]*\b.+\b(?:duoc may|duoc bao nhieu|ket qua)\b', t)):
         return 'course_result'
+    planning_intent = gpa_planning_intent(t)
+    if planning_intent:
+        return planning_intent
     if (any(term in t for term in ('mo phong', 'what-if', 'gia dinh', 'gia su', 'neu duoc', 'neu dat'))
             or ('neu ' in t and any(term in t for term in ('mon con lai', 'tin chi', 'deu a', 'deu b', '/10')))):
         return 'simulate'
@@ -318,6 +373,8 @@ def dispatch(message, user, previous=None, corpus_scope='demo_academic'):
     if re.search(r'bo qua quy tac|ignore previous instructions|student_id|diem cua (ban|sinh vien)', text):
         params.clear()
         return clarify('Hệ thống chỉ cung cấp dữ liệu học vụ của chính tài khoản bạn đã đăng nhập. Hãy hỏi về hồ sơ của bạn.')
+    if tool == 'gpa_plan_ambiguous':
+        return clarify('Câu hỏi có thể hiểu theo hai cách. Hãy ghi rõ một trong hai: “cần đạt trung bình bao nhiêu trong 45 tín chỉ để GPA đạt 3.2”, hoặc “nếu 45 tín chỉ đạt trung bình 3.2 thì GPA dự kiến là bao nhiêu”.')
     if tool == 'career':
         from app.career import career_matches, career_requirements, list_careers, resolve_career, student_skill_gap
         career_code = resolve_career(message) or params.get('career_code')

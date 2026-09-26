@@ -81,7 +81,22 @@ export function ChatCard({ card, feedback }: { card: Card; feedback?: EvidenceFe
     case 'required_gpa': return <div className="numeric-card">GPA cần đạt: {number(d.required_future_gpa)} / 4<p>{feasibility[d.feasibility] || d.feasibility}</p></div>;
     case 'target_score': return <div className="numeric-card">Điểm thành phần cần đạt: {number(d.required_score)} / 10<p>{feasibility[d.feasibility] || d.feasibility}</p></div>;
     case 'simulation':
-    case 'simulate': return <div className="numeric-card">GPA trước: {number(d.before.summary?.gpa_4 ?? d.before.cumulative_gpa)} → giả định: {number(d.after.summary?.gpa_4 ?? d.after.cumulative_gpa)} / 4{d.after.summary && <p>Thang 10: {number(d.before.summary?.gpa_10)} → {number(d.after.summary.gpa_10)}</p>}<p>Không ghi thay đổi vào bảng điểm.</p></div>;
+    case 'simulate': {
+      const projection = d.projection;
+      const currentGpa4 = projection?.current_gpa ?? d.before.summary?.gpa_4 ?? d.before.cumulative_gpa;
+      const projectedGpa4 = projection?.projected_gpa ?? d.after.summary?.gpa_4 ?? d.after.cumulative_gpa;
+      const currentGpa10 = d.before.summary?.gpa_10 ?? d.before.gpa_10;
+      const projectedGpa10 = d.after.summary?.gpa_10 ?? d.after.gpa_10;
+      const scale10Unavailable = currentGpa10 != null && projectedGpa10 == null;
+      return <div className="numeric-card">
+        <div>GPA hiện tại: {number(currentGpa4)} / 4</div>
+        {projection?.assumed_gpa != null && <div>Giả định: đạt {number(projection.assumed_gpa)} / 4 cho {number(projection.future_gpa_credits)} tín chỉ mới</div>}
+        <div>→ GPA dự kiến: {number(projectedGpa4)} / 4</div>
+        {currentGpa10 != null && <p>Thang 10 hiện tại: {number(currentGpa10)} / 10{!scale10Unavailable && projectedGpa10 != null && <> → dự kiến: {number(projectedGpa10)} / 10</>}</p>}
+        {scale10Unavailable && <p><small>Không quy đổi GPA dự kiến sang thang 10 vì quy tắc quy đổi theo bậc, không tuyến tính.</small></p>}
+        <p>Không ghi thay đổi vào bảng điểm.</p>
+      </div>;
+    }
     case 'semester_history': return <table><thead><tr><th>Học kỳ</th><th>GPA kỳ</th><th>GPA tích lũy</th><th>Tín chỉ đạt kỳ</th><th>Độ đầy đủ</th></tr></thead><tbody>{d.map((s: any) => <tr key={s.code || s.semester_id}><td>{s.code || s.semester_code || s.semester_id}</td><td>{number(s.term?.gpa_4 ?? s.term_gpa)}</td><td>{number(s.cumulative?.gpa_4 ?? s.cumulative_gpa)}</td><td>{number(s.term?.earned_credits ?? s.term_earned_credits)}</td><td>{s.coverage === 'partial' ? 'Thiếu ngày/kết quả' : s.coverage === 'complete' ? 'Đủ theo dữ liệu tự khai' : 'Theo hồ sơ'}</td></tr>)}</tbody></table>;
     case 'course_recommendations': return <div><p>Tổng: {number(d.total_credits)} tín chỉ</p>{d.selected.length ? <ul>{d.selected.map((c: any) => <li key={c.id}>{c.code} — {c.title} · {number(c.credits)} TC{c.retake ? ' · học lại' : ''}</li>)}</ul> : <p>Không có môn đủ điều kiện.</p>}<details><summary>Các môn loại và lý do</summary><ul>{d.excluded.map((c: any, i: number) => <li key={i}>{c.code}: {c.reason}{c.missing?.length ? ` (${c.missing.length} tiên quyết chưa đủ)` : ''}</li>)}</ul></details></div>;
     case 'curriculum_summary': return <details><summary>{d.length} môn trong chương trình</summary><ul>{d.map((c: any) => <li key={c.code}>{c.code} — {c.title} · {number(c.credits)} TC</li>)}</ul></details>;

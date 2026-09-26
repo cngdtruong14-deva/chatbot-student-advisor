@@ -36,6 +36,17 @@ assert.match(render('goal_analysis', { required_score: '8.5', feasibility: 'achi
 assert.doesNotMatch(render('goal_analysis', { required_score: '8.5', feasibility: 'achievable' }), /Đã đạt.*tín chỉ/);
 assert.match(render('goal_analysis', { required_future_gpa: null, feasibility: 'completed_target_not_met' }), /không còn tín chỉ/);
 assert.match(render('simulation', { before: { cumulative_gpa: '2.96' }, after: { cumulative_gpa: '3.068' } }), /3,068/);
+const personalProjection = render('simulation', {
+  before: { summary: { gpa_4: '2.1', gpa_10: '5.8' } },
+  after: { summary: { gpa_4: '3.09', gpa_10: null } },
+  projection: { current_gpa: '2.1', assumed_gpa: '3.2', future_gpa_credits: '45', projected_gpa: '3.09' },
+});
+assert.match(personalProjection, /GPA hiện tại: 2,1 \/ 4/);
+assert.match(personalProjection, /Giả định: đạt 3,2 \/ 4 cho 45 tín chỉ mới/);
+assert.match(personalProjection, /GPA dự kiến: 3,09 \/ 4/);
+assert.match(personalProjection, /Thang 10 hiện tại: 5,8 \/ 10/);
+assert.doesNotMatch(personalProjection, /Thang 10 hiện tại:[^<]*→/);
+assert.match(personalProjection, /quy đổi theo bậc, không tuyến tính/);
 assert.match(render('course_recommendations', { selected: [], excluded: [], total_credits: '0' }), /Không có môn đủ điều kiện/);
 assert.match(render('semester_history', [{ semester_id: '1', semester_code: 'DEMO-T1', term_gpa: null, cumulative_gpa: null, term_earned_credits: '0' }]), /DEMO-T1/);
 assert.match(render('career_requirements', { career: { title: 'Data Analyst', description: 'Phân tích dữ liệu' }, skills: [{ skill_id: 'SK09', skill_name: 'SQL', importance_weight: '.2', courses: [] }], mapping_version: 'HTTT-CAREER-SKILLS-1.0.0' }), /SQL/);
