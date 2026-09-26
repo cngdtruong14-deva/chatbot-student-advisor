@@ -120,6 +120,7 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
 
     // 9. Invite registration & unlinked student UX
     const username = `stage8_${randomBytes(5).toString('hex')}`;
+    const studentCode = `S8-${randomBytes(4).toString('hex').toUpperCase()}`;
     const recoveredPassword = `${password}R1!`;
     await page.getByText('Đăng ký pilot / Khôi phục mật khẩu').click();
     await page.getByLabel('Tên đăng nhập', { exact: true }).fill(username);
@@ -130,6 +131,12 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     await page.getByText('Thành công. Hãy đăng nhập bằng mật khẩu mới.').waitFor();
     const newUser = await login(username, password, 'Nhìn rõ hiện tại. Đi xa hơn.');
     await page.getByRole('heading', { name: 'Bắt đầu với bảng điểm cá nhân' }).waitFor();
+    const onboarding = page.getByRole('heading', { name: 'Hồ sơ cá nhân' }).locator('..');
+    await onboarding.getByLabel('Tên hiển thị').fill('Sinh viên Stage 8');
+    await onboarding.locator('select').nth(0).selectOption('Hệ thống thông tin');
+    await onboarding.locator('select').nth(1).selectOption('K75');
+    await onboarding.getByRole('button', { name: 'Lưu hồ sơ' }).click();
+    await onboarding.getByText('Đã lưu hồ sơ cá nhân.').waitFor();
     await logout();
 
     // 10. Admin recovery code issuance
@@ -137,7 +144,14 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     const accountTable = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'Tài khoản và trạng thái hồ sơ' }) });
     const newAccountRow = accountTable.locator('tbody tr').filter({ hasText: username });
     await newAccountRow.getByRole('button', { name: 'Quản lý' }).click();
-    const recoveryPanel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: `Quản lý sinh viên: ${username}` }) });
+    const recoveryPanel = page.getByRole('heading', { name: `Quản lý sinh viên: ${username}` }).locator('..');
+    await recoveryPanel.getByText(/Hệ thống thông tin · K75/).first().waitFor();
+    const linkForm = recoveryPanel.locator('form').filter({ hasText: 'Liên kết hồ sơ học vụ pilot' });
+    await linkForm.locator('input[pattern]').fill(studentCode);
+    await linkForm.locator('select').nth(1).selectOption({ label: 'K75' });
+    await linkForm.getByRole('checkbox', { name: /đối chiếu tài khoản/ }).check();
+    await linkForm.getByRole('button', { name: 'Liên kết hồ sơ' }).click();
+    await page.getByText('Đã liên kết hồ sơ học vụ. Sinh viên có thể dùng dữ liệu trường sau khi đăng nhập lại/làm mới.').waitFor();
     await recoveryPanel.getByText('Khôi phục mật khẩu', { exact: true }).click();
     await recoveryPanel.getByRole('checkbox', { name: /xác minh đúng chủ tài khoản/ }).check();
     await recoveryPanel.getByRole('button', { name: /Cấp mã khôi phục/ }).click();
@@ -153,6 +167,7 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     await page.getByRole('button', { name: 'Xác nhận' }).click();
     await page.getByText('Thành công. Hãy đăng nhập bằng mật khẩu mới.').waitFor();
     await login(username, recoveredPassword, 'Nhìn rõ hiện tại. Đi xa hơn.');
+    await page.getByText(studentCode, { exact: false }).waitFor();
     await logout();
 
     // 12. Unlinked user UX

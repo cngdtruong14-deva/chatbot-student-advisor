@@ -74,7 +74,7 @@ class AdminAccountList(BaseModel):
     items: list[AdminAccountItem]
 
 
-class AdminCohortOption(BaseModel):
+class CohortOption(BaseModel):
     id: str
     code: str
     curriculum_id: str
@@ -83,8 +83,8 @@ class AdminCohortOption(BaseModel):
     major: str
 
 
-class AdminCohortList(BaseModel):
-    items: list[AdminCohortOption]
+class CohortCatalog(BaseModel):
+    items: list[CohortOption]
 
 
 class AdminAcademicProfileLinkResult(BaseModel):

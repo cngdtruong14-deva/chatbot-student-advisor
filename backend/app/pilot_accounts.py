@@ -34,10 +34,15 @@ class PersonalProfile(DTO):
             raise ValueError("Blank name")
         return value.strip()
 
-    @field_validator("major", "cohort")
+    @field_validator("major")
     @classmethod
     def trimmed_optional(cls, value):
         return value.strip()
+
+    @field_validator("cohort")
+    @classmethod
+    def normalized_cohort(cls, value):
+        return value.strip().upper()
 
 
 class AcademicProfileLink(DTO):
@@ -92,7 +97,7 @@ def accounts(user: Actor, q: str = ""):
     return envelope({"items": items})
 
 
-@router.get("/admin/cohorts", response_model=out.Envelope[out.AdminCohortList])
+@router.get("/admin/cohorts", response_model=out.Envelope[out.CohortCatalog])
 def admin_cohorts(user: Actor):
     require_role(user, "admin")
     with transaction() as db:
@@ -245,12 +250,18 @@ def profile(user: Actor):
 def profile_save(body: PersonalProfile, user: Actor):
     require_role(user, "student")
     with transaction() as db:
-        if body.major and not one(
-            db,
-            "SELECT id FROM app.curricula WHERE major=:major AND status='demo' LIMIT 1",
-            major=body.major,
-        ):
-            raise APIError("UNKNOWN_MAJOR", 422, "Hãy chọn một ngành có trong danh mục học vụ")
+        if body.major:
+            curriculum = one(db, "SELECT id FROM app.curricula WHERE major=:major AND status='demo' LIMIT 1",
+                             major=body.major)
+            if not curriculum:
+                raise APIError("UNKNOWN_MAJOR", 422, "Hãy chọn một ngành có trong danh mục học vụ")
+            if not one(db, """SELECT ch.id FROM app.cohorts ch
+                  JOIN app.curricula c ON c.id=ch.curriculum_id
+                WHERE ch.code=:code AND c.major=:major AND c.status='demo' LIMIT 1""",
+                       code=body.cohort, major=body.major):
+                raise APIError("UNKNOWN_COHORT", 422, "Hãy chọn một khóa thuộc đúng chương trình đã chọn")
+        elif body.cohort:
+            raise APIError("MAJOR_REQUIRED", 422, "Hãy chọn ngành trước khi chọn khóa")
         run(db, """INSERT INTO app.onboarding_profiles(user_id,display_name,major,cohort)
           VALUES(:u,:n,:m,:c) ON CONFLICT(user_id) DO UPDATE SET display_name=excluded.display_name,
           major=excluded.major,cohort=excluded.cohort,updated_at=now()""",

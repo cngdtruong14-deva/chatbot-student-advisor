@@ -9,6 +9,7 @@ const expected = [
   ['post', '/api/v1/auth/logout'], ['post', '/api/v1/auth/register'],
   ['post', '/api/v1/auth/recover'], ['get', '/api/v1/system/capabilities'],
   ['get', '/api/v1/catalog/semesters'], ['get', '/api/v1/catalog/curricula'],
+  ['get', '/api/v1/catalog/cohorts'],
   ['get', '/api/v1/students/me'],
   ['get', '/api/v1/students/{student_id}/academic-summary'],
   ['patch', '/api/v1/students/me/goal'], ['get', '/api/v1/advisor/students'],

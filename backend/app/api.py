@@ -524,6 +524,17 @@ def curricula_catalog(user: Actor):
         return envelope({"items": _curriculum_options(db)})
 
 
+@router.get("/catalog/cohorts", response_model=out.Envelope[out.CohortCatalog])
+def cohorts_catalog(user: Actor):
+    """Reviewed cohort choices shared by student self-report and admin approval."""
+    with transaction() as db:
+        items = rows(db, """SELECT ch.id,ch.code,ch.curriculum_id,c.code AS curriculum_code,
+              c.version AS curriculum_version,c.major
+            FROM app.cohorts ch JOIN app.curricula c ON c.id=ch.curriculum_id
+            WHERE c.status='demo' ORDER BY c.major,c.version,ch.code""")
+    return envelope({"items": items})
+
+
 @router.get("/catalog/curricula/{curriculum_id}/courses")
 def courses(curriculum_id: UUID, user: Actor, limit: int = 20, cursor: str | None = None):
     with transaction() as db:

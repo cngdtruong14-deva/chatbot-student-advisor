@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from './api';
-import type { CurriculumCatalog, OneTimeAccountCode, PersonalAccountProfile, ProfileSaveResult, RecoveryResult, RegistrationResult } from './generated-api';
+import type { CohortCatalog, CurriculumCatalog, OneTimeAccountCode, PersonalAccountProfile, ProfileSaveResult, RecoveryResult, RegistrationResult } from './generated-api';
 
 export function AccountRegistration() {
   const [mode, setMode] = useState('register');
@@ -32,14 +32,21 @@ export function AccountRegistration() {
 export function PersonalOnboarding() {
   const [values, setValues] = useState({ display_name: '', major: '', cohort: '' });
   const [curricula, setCurricula] = useState<CurriculumCatalog['items']>([]);
+  const [cohorts, setCohorts] = useState<CohortCatalog['items']>([]);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
   useEffect(() => { let active = true; api<PersonalAccountProfile | null>('/account/profile').then(p => {
     if (active && p) setValues({ display_name: p.display_name, major: p.major, cohort: p.cohort });
   }).catch(e => { if (active) setMessage(e.message); }); return () => { active = false; }; }, []);
-  useEffect(() => { let active = true; api<CurriculumCatalog>('/catalog/curricula').then(result => {
-    if (active) setCurricula(result.items);
+  useEffect(() => { let active = true; Promise.all([
+    api<CurriculumCatalog>('/catalog/curricula'), api<CohortCatalog>('/catalog/cohorts'),
+  ]).then(([curriculumResult, cohortResult]) => {
+    if (active) { setCurricula(curriculumResult.items); setCohorts(cohortResult.items); }
   }).catch(e => { if (active) setMessage(e.message); }); return () => { active = false; }; }, []);
   const knownMajor = !values.major || curricula.some(item => item.major === values.major);
+  const selectedCurriculumIds = new Set(curricula.filter(item => item.major === values.major).map(item => item.id));
+  const compatibleCohorts = cohorts.filter(item => selectedCurriculumIds.has(item.curriculum_id));
+  const normalizedCohort = values.cohort.toUpperCase();
+  const knownCohort = !normalizedCohort || compatibleCohorts.some(item => item.code === normalizedCohort);
   return <section className="panel"><h2>Hồ sơ cá nhân</h2>
     <p>Thông tin tự khai, chưa được trường xác minh. Sau khi lưu, bạn có thể nhập bảng điểm cá nhân để tính GPA và mô phỏng mục tiêu.</p>
     <form onSubmit={async e => { e.preventDefault(); setBusy(true); try {
@@ -47,7 +54,7 @@ export function PersonalOnboarding() {
     } catch (err) { setMessage((err as Error).message); } finally { setBusy(false); } }}>
       <label>Tên hiển thị<input required maxLength={120} value={values.display_name} onChange={e => setValues({...values, display_name: e.target.value})} /></label>
       <label>Ngành
-        <select value={values.major} onChange={e => setValues({...values, major: e.target.value})}>
+        <select value={values.major} onChange={e => setValues({...values, major: e.target.value, cohort: ''})}>
           <option value="">Chọn ngành trong danh mục</option>
           {!knownMajor && <option value={values.major}>{values.major} (giá trị hồ sơ cũ)</option>}
           {curricula.map(item => <option key={item.id} value={item.major}>
@@ -56,7 +63,15 @@ export function PersonalOnboarding() {
         </select>
       </label>
       {!knownMajor && <p className="muted">Ngành đã lưu không còn trong danh mục. Hãy chọn lại trước khi cập nhật hồ sơ.</p>}
-      <label>Khóa (tự khai)<input maxLength={60} value={values.cohort} onChange={e => setValues({...values, cohort: e.target.value})} /></label>
+      <label>Khóa (tự khai, chờ admin xác nhận)
+        <select required={Boolean(values.major)} disabled={!values.major} value={normalizedCohort} onChange={e => setValues({...values, cohort: e.target.value})}>
+          <option value="">{values.major ? 'Chọn khóa thuộc chương trình' : 'Chọn ngành trước'}</option>
+          {!knownCohort && <option value={normalizedCohort}>{values.cohort} (giá trị cũ — cần chọn lại)</option>}
+          {compatibleCohorts.map(item => <option key={item.id} value={item.code}>{item.code}</option>)}
+        </select>
+      </label>
+      {values.major && !compatibleCohorts.length && <p className="error">Chương trình chưa có khóa được quản trị viên công bố.</p>}
+      <p className="muted">Khóa tự khai sẽ hiển thị cho admin đối chiếu; chưa tự tạo hồ sơ học vụ hoặc xác minh điểm.</p>
       <button disabled={busy}>Lưu hồ sơ</button>
     </form><p role="status">{message}</p></section>;
 }
@@ -96,10 +111,17 @@ export function AdminAccounts() {
     return text.includes(query.trim().toLowerCase());
   });
   const compatibleCohorts = cohorts.filter(item => item.curriculum_id === link.curriculum_id);
+  const linkBlockingReason = !link.student_code.trim() ? 'Nhập mã sinh viên.'
+    : !link.full_name.trim() ? 'Nhập họ tên hồ sơ học vụ.'
+    : !link.curriculum_id ? 'Chọn chương trình.'
+    : !compatibleCohorts.length ? 'Chương trình chưa có khóa hợp lệ trong catalog.'
+    : !link.cohort_id ? 'Chọn khóa cần xác nhận.'
+    : !link.confirmed ? 'Đánh dấu xác nhận sau khi đã đối chiếu thông tin.' : '';
   useEffect(() => {
     if (!selected || selected.role !== 'student') return;
     const preferredCurriculum = selected.curriculum_id || curricula.find(item => item.major === selected.self_reported_major)?.id || curricula[0]?.id || '';
-    const preferredCohort = selected.cohort_id || cohorts.find(item => item.curriculum_id === preferredCurriculum && item.code === selected.self_reported_cohort)?.id || '';
+    const reportedCohort = (selected.self_reported_cohort || '').trim().toUpperCase();
+    const preferredCohort = selected.cohort_id || cohorts.find(item => item.curriculum_id === preferredCurriculum && item.code.toUpperCase() === reportedCohort)?.id || '';
     setLink({ student_code: selected.student_code || '', full_name: selected.full_name || selected.display_name || '',
       curriculum_id: preferredCurriculum, cohort_id: preferredCohort, confirmed: false });
   }, [selectedId, accounts.length, cohorts.length, curricula.length]);
@@ -157,6 +179,7 @@ export function AdminAccounts() {
           confirmation: 'LINK_ACADEMIC_PROFILE',
         }), 'Đã liên kết hồ sơ học vụ. Sinh viên có thể dùng dữ liệu trường sau khi đăng nhập lại/làm mới.'); }}>
         <h3>Liên kết hồ sơ học vụ pilot</h3>
+        <p className="muted">Sinh viên tự khai: <strong>{selected.self_reported_major || 'chưa chọn ngành'} · {selected.self_reported_cohort || 'chưa chọn khóa'}</strong>. Admin phải đối chiếu rồi mới tạo hồ sơ học vụ synthetic.</p>
         <label>Mã sinh viên<input required pattern="[A-Za-z0-9_-]+" value={link.student_code} onChange={e => setLink({...link, student_code: e.target.value.toUpperCase()})} /></label>
         <label>Họ tên hồ sơ học vụ<input required value={link.full_name} onChange={e => setLink({...link, full_name: e.target.value})} /></label>
         <label>Chương trình<select required value={link.curriculum_id} onChange={e => setLink({...link, curriculum_id: e.target.value, cohort_id: ''})}>
@@ -165,7 +188,8 @@ export function AdminAccounts() {
           <option value="">Chọn khóa</option>{compatibleCohorts.map(item => <option key={item.id} value={item.id}>{item.code}</option>)}</select></label>
         {link.curriculum_id && !compatibleCohorts.length && <p className="error">Chương trình này chưa có khóa hợp lệ trong catalog. Hãy import/tạo cohort trước khi liên kết.</p>}
         <label><input type="checkbox" checked={link.confirmed} onChange={e => setLink({...link, confirmed: e.target.checked})} required /> Tôi đã đối chiếu tài khoản, mã sinh viên, chương trình và khóa.</label>
-        <button disabled={busy || !link.confirmed || !compatibleCohorts.length}>Liên kết hồ sơ</button>
+        {linkBlockingReason && <p className="muted" role="status">Để liên kết: {linkBlockingReason}</p>}
+        <button disabled={busy || Boolean(linkBlockingReason)}>Liên kết hồ sơ</button>
       </form> : <p className="success"><strong>Đã liên kết:</strong> {selected.student_code} · {selected.full_name} · {selected.curriculum_code}/{selected.curriculum_version} · {selected.cohort_code}. Không cho phép ghi đè hoặc chuyển quyền tự động.</p>}
     </section>}
 

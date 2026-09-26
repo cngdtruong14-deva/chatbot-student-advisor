@@ -403,6 +403,25 @@
         }
       }
     },
+    "/api/v1/catalog/cohorts": {
+      "get": {
+        "summary": "Cohorts Catalog",
+        "description": "Reviewed cohort choices shared by student self-report and admin approval.",
+        "operationId": "cohorts_catalog_api_v1_catalog_cohorts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CohortCatalog_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/catalog/curricula/{curriculum_id}/courses": {
       "get": {
         "summary": "Courses",
@@ -1756,7 +1775,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_AdminCohortList_"
+                  "$ref": "#/components/schemas/Envelope_CohortCatalog_"
                 }
               }
             }
@@ -2872,60 +2891,6 @@
         ],
         "title": "AdminAccountList"
       },
-      "AdminCohortList": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/AdminCohortOption"
-            },
-            "type": "array",
-            "title": "Items"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "title": "AdminCohortList"
-      },
-      "AdminCohortOption": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "code": {
-            "type": "string",
-            "title": "Code"
-          },
-          "curriculum_id": {
-            "type": "string",
-            "title": "Curriculum Id"
-          },
-          "curriculum_code": {
-            "type": "string",
-            "title": "Curriculum Code"
-          },
-          "curriculum_version": {
-            "type": "string",
-            "title": "Curriculum Version"
-          },
-          "major": {
-            "type": "string",
-            "title": "Major"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "code",
-          "curriculum_id",
-          "curriculum_code",
-          "curriculum_version",
-          "major"
-        ],
-        "title": "AdminCohortOption"
-      },
       "AdvisorAssignmentItem": {
         "properties": {
           "advisor_user_id": {
@@ -3193,6 +3158,60 @@
           "provider_status"
         ],
         "title": "ChatTurn"
+      },
+      "CohortCatalog": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CohortOption"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CohortCatalog"
+      },
+      "CohortOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "curriculum_id": {
+            "type": "string",
+            "title": "Curriculum Id"
+          },
+          "curriculum_code": {
+            "type": "string",
+            "title": "Curriculum Code"
+          },
+          "curriculum_version": {
+            "type": "string",
+            "title": "Curriculum Version"
+          },
+          "major": {
+            "type": "string",
+            "title": "Major"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "curriculum_id",
+          "curriculum_code",
+          "curriculum_version",
+          "major"
+        ],
+        "title": "CohortOption"
       },
       "CourseScore": {
         "properties": {
@@ -3553,22 +3572,6 @@
         ],
         "title": "Envelope[AdminAccountList]"
       },
-      "Envelope_AdminCohortList_": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/AdminCohortList"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/Meta"
-          }
-        },
-        "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
-        "title": "Envelope[AdminCohortList]"
-      },
       "Envelope_AdvisorAssignmentList_": {
         "properties": {
           "data": {
@@ -3632,6 +3635,22 @@
           "meta"
         ],
         "title": "Envelope[ChatTurn]"
+      },
+      "Envelope_CohortCatalog_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CohortCatalog"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[CohortCatalog]"
       },
       "Envelope_CurriculumCatalog_": {
         "properties": {

@@ -38,6 +38,10 @@ class CatalogImportsTests(unittest.TestCase):
         self.assertEqual(htt["major"], "Hệ thống thông tin")
         self.assertEqual(htt["faculty"], "Công nghệ thông tin")
         self.assertEqual(htt["total_required_credits"], "157.000000")
+        cohorts = self.client.get("/api/v1/catalog/cohorts", headers=student_headers)
+        self.assertEqual(cohorts.status_code, 200, cohorts.text)
+        self.assertTrue(any(item["code"] == "K75" and item["curriculum_id"] == htt["id"]
+                            for item in cohorts.json()["data"]["items"]))
         with transaction() as db:
             counts = one(db, """SELECT count(*) AS total,
                     count(*) FILTER (WHERE cc.required) AS required,
@@ -53,11 +57,15 @@ class CatalogImportsTests(unittest.TestCase):
                           counts["invented_terms"], counts["non_gpa"]), (72, 53, 19, 0, 8))
         self.assertEqual(prerequisites["total"], 45)
         bad = self.client.put("/api/v1/account/profile", headers=student_headers,
-            json={"display_name": "Pilot", "major": "Ngành không tồn tại", "cohort": "K74"})
+            json={"display_name": "Pilot", "major": "Ngành không tồn tại", "cohort": "K75"})
         self.assertEqual(bad.status_code, 422)
         self.assertEqual(bad.json()["error"]["code"], "UNKNOWN_MAJOR")
-        good = self.client.put("/api/v1/account/profile", headers=student_headers,
+        wrong_cohort = self.client.put("/api/v1/account/profile", headers=student_headers,
             json={"display_name": "Pilot", "major": "Hệ thống thông tin", "cohort": "K74"})
+        self.assertEqual(wrong_cohort.status_code, 422)
+        self.assertEqual(wrong_cohort.json()["error"]["code"], "UNKNOWN_COHORT")
+        good = self.client.put("/api/v1/account/profile", headers=student_headers,
+            json={"display_name": "Pilot", "major": "Hệ thống thông tin", "cohort": "K75"})
         self.assertEqual(good.status_code, 200, good.text)
         denied = self.client.get("/api/v1/admin/majors", headers=student_headers)
         self.assertEqual(denied.status_code, 403)
@@ -71,7 +79,7 @@ class CatalogImportsTests(unittest.TestCase):
             self.skipTest("No unlinked pilot account in fixture")
         headers = {"Authorization": f"Bearer {access_token(user['id'])}"}
         saved = self.client.put("/api/v1/account/profile", headers=headers,
-            json={"display_name": "Pilot HTTT", "major": "Hệ thống thông tin", "cohort": "K74"})
+            json={"display_name": "Pilot HTTT", "major": "Hệ thống thông tin", "cohort": "K75"})
         self.assertEqual(saved.status_code, 200, saved.text)
         self.assertEqual(resolve_actor_scope({"id": user["id"], "role": "student"}),
                          {"major": "all", "cohort": "all", "resolved": False})
