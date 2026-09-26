@@ -271,9 +271,6 @@ def get_transcript(user: Actor):
 def save_transcript(body: TranscriptSave, user: Actor):
     require_role(user, 'student')
     with transaction() as db:
-        profile = one(db, 'SELECT user_id FROM app.onboarding_profiles WHERE user_id=:u FOR UPDATE', u=user['id'])
-        if not profile:
-            raise APIError('PERSONAL_PROFILE_REQUIRED', 409, 'Hãy lưu hồ sơ cá nhân trước khi lưu bảng điểm.')
         current = load(db, user)
         if current.revision != body.expected_revision:
             raise APIError('ACADEMIC_REVISION_CONFLICT', 409, 'Bảng điểm đã đổi. Tải lại trước khi sửa.')

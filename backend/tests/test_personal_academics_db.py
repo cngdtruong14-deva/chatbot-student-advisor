@@ -25,7 +25,6 @@ class PersonalAcademicDBTests(unittest.TestCase):
         for _ in range(2):
             uid = uuid4()
             run(self.conn, "INSERT INTO app.users(id,email,password_hash,role) VALUES(:u,:e,'test-only','student')", u=uid, e=f'{uid}@test.invalid')
-            run(self.conn, "INSERT INTO app.onboarding_profiles(user_id,display_name) VALUES(:u,'Fixture')", u=uid)
             self.users.append({'id':uid,'role':'student'})
         self.user = self.users[0]
         @contextmanager
@@ -155,12 +154,12 @@ class PersonalAcademicDBTests(unittest.TestCase):
         self.assertEqual(result['cards'], [])
         self.assertIn('đã thay đổi', result['answer'])
 
-    def test_profile_required_and_non_student_forbidden(self):
+    def test_unlinked_account_can_save_and_non_student_is_forbidden(self):
         uid = uuid4()
         run(self.conn, "INSERT INTO app.users(id,email,password_hash,role) VALUES(:u,:e,'test-only','student')", u=uid,e=f'{uid}@test.invalid')
         self.user = {'id':uid, 'role':'student'}
         response = self.save()
-        self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.json()['error']['code'], 'PERSONAL_PROFILE_REQUIRED')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(one(self.conn, 'SELECT count(*) AS n FROM app.onboarding_profiles WHERE user_id=:u', u=uid)['n'], 0)
         self.user = {'id':uid, 'role':'advisor'}
         self.assertEqual(self.client.get('/api/v1/account/transcript').status_code, 403)

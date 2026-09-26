@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { api } from './api';
-import { PersonalOnboarding } from './Accounts';
 import { PRODUCT_CONFIG } from './product-config';
 import type { PersonalTranscript_Input as PersonalTranscript, PersonalAttempt_Input as PersonalAttempt, TranscriptView, PersonalSummary, PersonalSimulationResult, PersonalGoalResult, PersonalTargetResult } from './generated-api';
 
@@ -42,9 +41,8 @@ export function PersonalAcademics({ officialProfileLinked = false }: { officialP
       <div><strong>3. Dữ liệu trường:</strong> {officialProfileLinked ? 'Đã liên kết với hồ sơ học vụ' : 'Chưa liên kết/xác minh · không ảnh hưởng việc dùng bảng điểm tự khai'}</div>
     </div>
     <div style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', margin: '8px 0 14px', fontSize: '13px', color: '#92400e' }}>
-      <strong>Lưu ý:</strong> {PRODUCT_CONFIG.ACADEMICS.SELF_REPORTED_DISCLOSURE} {PRODUCT_CONFIG.ACADEMICS.POLICY_DEMO_DISCLOSURE}
+      <strong>Lưu ý:</strong> {PRODUCT_CONFIG.ACADEMICS.SELF_REPORTED_DISCLOSURE} Bạn có thể tạo, sửa và lưu bảng điểm này mà không cần liên kết hoặc phê duyệt từ quản trị viên. {PRODUCT_CONFIG.ACADEMICS.POLICY_DEMO_DISCLOSURE}
     </div>
-    <details><summary><strong>Bước 1 — Thông tin cá nhân, ngành và khóa</strong></summary><PersonalOnboarding /></details>
     <p style={{ fontSize: '13px', color: dirty ? '#b45309' : '#64748b' }}>
       {dirty ? '● Có thay đổi chưa lưu. Kết quả tính toán bên dưới chưa bao gồm các thay đổi này.' : 'Đang xem dữ liệu đã lưu trong hồ sơ cá nhân.'}
     </p>

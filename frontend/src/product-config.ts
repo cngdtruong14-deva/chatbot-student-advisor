@@ -42,7 +42,7 @@ export const PRODUCT_CONFIG = {
 
   ACCOUNTS: {
     DEMO_BADGE: 'Tài khoản minh họa',
-    UNLINKED_NOTICE: 'Tài khoản của bạn chưa được liên kết với hồ sơ sinh viên trong hệ thống. Bạn có thể sử dụng chức năng tự khai báo bảng điểm hoặc liên hệ quản trị viên để được cấp mã liên kết.',
+    UNLINKED_NOTICE: 'Bạn có thể tạo và tự quản lý bảng điểm tự khai ngay bây giờ. Liên kết với quản trị viên chỉ áp dụng cho hồ sơ học vụ chính thức và quyền truy cập dữ liệu thuộc phạm vi đó; không áp dụng cho bảng điểm tự khai.',
   }
 } as const;
 

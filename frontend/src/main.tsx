@@ -7,7 +7,7 @@ import { Research } from './Research';
 import { Chat } from './Chat';
 import { StudentInput } from './StudentInput';
 import { PersonalAcademics } from './PersonalAcademics';
-import { AccountRegistration, PersonalOnboarding, AdminAccounts } from './Accounts';
+import { AccountRegistration, AdminAccounts } from './Accounts';
 import { PRODUCT_CONFIG, STUDENT_NAV, ADVISOR_NAV, ADMIN_NAV, NavItem } from './product-config';
 import type { AcademicSummary } from "./api-types";
 
@@ -22,7 +22,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [starting, setStarting] = useState(true);
   const [page, setPage] = useState("overview");
-  const [academicsTab, setAcademicsTab] = useState<"official" | "personal" | "self_input">("official");
+  const [academicsTab, setAcademicsTab] = useState<"official" | "personal" | "self_input">("personal");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -308,12 +308,11 @@ function App() {
 
               {user.role === 'student' && !profile && !busy && (
                 <section className="panel" role="status">
-                  <h2>Bắt đầu với bảng điểm cá nhân</h2>
+                  <h2>Bắt đầu với bảng điểm tự khai</h2>
                   <p>{PRODUCT_CONFIG.ACCOUNTS.UNLINKED_NOTICE}</p>
-                  <button onClick={() => { setAcademicsTab('personal'); navigate('academics'); }}>
-                    Mở bảng điểm cá nhân (Tự khai báo) →
+                  <button onClick={() => navigate('academics')}>
+                    Nhập bảng điểm tự khai →
                   </button>
-                  <PersonalOnboarding />
                 </section>
               )}
 
@@ -456,7 +455,7 @@ function App() {
                     style={{ background: academicsTab === 'personal' ? '#174d3b' : '#e2e8f0', color: academicsTab === 'personal' ? '#fff' : '#334155' }}
                     onClick={() => setAcademicsTab('personal')}
                   >
-                    Hồ sơ tự khai · có lưu
+                    Bảng điểm tự khai
                   </button>
                   <button
                     type="button"
