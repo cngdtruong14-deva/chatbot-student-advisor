@@ -110,7 +110,9 @@ phải đặt mật khẩu riêng hoặc tạo tài khoản mới và lưu trong
 Migration `0015_htt_catalog` nạp catalog pilot `HTTT-UTT/2024`: 72 học phần,
 thuộc ngành Hệ thống thông tin, khoa Công nghệ thông tin. Migration
 `0016_career_skills` nạp mapping demo đã duyệt: 27 kỹ năng, 6 nghề, 8 chứng chỉ,
-91 ánh xạ và 25 học phần loại có lý do. Migration không tạo điểm sinh viên.
+91 ánh xạ và 25 học phần loại có lý do. Migration `0017_pilot_cohort` bổ sung
+khóa K75 để admin có thể liên kết tài khoản pilot với một hồ sơ học vụ synthetic
+riêng. Các migration này không tạo hoặc nâng cấp điểm tự khai thành điểm trường.
 
 Điểm minh họa nghề nghiệp là opt-in và chỉ chạy sau khi một profile đã được gắn
 curriculum `HTTT-UTT`:

@@ -26,6 +26,7 @@ jobs:
       RESOURCE_GROUP: rg-advisor-staging-5c4702
       CONTAINER_APP: ca-advisor-staging-5c4702
       ACR_NAME: cradvisorstaging5c4702
+      MIGRATION_JOB: caj-advisor-stg-5c4702-migrate
       PUBLIC_ORIGIN: https://cngdtruong.id.vn
     steps:
       - uses: actions/checkout@v4
@@ -93,6 +94,37 @@ jobs:
             echo "WEB_IMAGE=$web_image"
             echo "REVISION_SUFFIX=deploy-${short_sha}"
           } >> "$GITHUB_ENV"
+
+      - name: Run additive database migrations before application rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          execution="$(az containerapp job start \
+            --name "$MIGRATION_JOB" \
+            --resource-group "$RESOURCE_GROUP" \
+            --container-name alembic-migrate \
+            --image "$API_IMAGE" \
+            --query name -o tsv)"
+          test -n "$execution"
+          echo "Migration execution: $execution"
+
+          completed=0
+          for attempt in $(seq 1 60); do
+            status="$(az containerapp job execution list \
+              --name "$MIGRATION_JOB" \
+              --resource-group "$RESOURCE_GROUP" \
+              --query "[?name=='$execution'].properties.status | [0]" -o tsv)"
+            echo "Migration ${execution}: ${status:-Pending} (${attempt}/60)"
+            if [ "$status" = "Succeeded" ]; then
+              completed=1
+              break
+            fi
+            if [ "$status" = "Failed" ] || [ "$status" = "Stopped" ]; then
+              break
+            fi
+            sleep 5
+          done
+          test "$completed" -eq 1
 
       - name: Deploy one revision and verify health
         shell: bash

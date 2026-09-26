@@ -15,6 +15,17 @@ from app.test_safety import require_test_environment
 
 @unittest.skipUnless(os.environ.get("ADVISOR_TEST_DATABASE") == "1", "isolated disposable database only")
 class AdminAccountGovernanceTests(unittest.TestCase):
+    def test_reviewed_httt_k75_cohort_is_available_to_admin(self):
+        response = self.client.get("/api/v1/admin/cohorts")
+        self.assertEqual(response.status_code, 200)
+        items = response.json()["data"]["items"]
+        self.assertTrue(any(
+            item["curriculum_code"] == "HTTT-UTT"
+            and item["curriculum_version"] == "2024"
+            and item["code"] == "K75"
+            for item in items
+        ))
+
     def setUp(self):
         require_test_environment()
         self.conn = engine().connect()
