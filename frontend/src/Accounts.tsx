@@ -111,11 +111,13 @@ export function AdminAccounts() {
     return text.includes(query.trim().toLowerCase());
   });
   const compatibleCohorts = cohorts.filter(item => item.curriculum_id === link.curriculum_id);
+  const selectedCatalogCohort = cohorts.find(item => item.id === link.cohort_id);
   const linkBlockingReason = !link.student_code.trim() ? 'Nhập mã sinh viên.'
     : !link.full_name.trim() ? 'Nhập họ tên hồ sơ học vụ.'
     : !link.curriculum_id ? 'Chọn chương trình.'
     : !compatibleCohorts.length ? 'Chương trình chưa có khóa hợp lệ trong catalog.'
     : !link.cohort_id ? 'Chọn khóa cần xác nhận.'
+    : selectedCatalogCohort?.curriculum_id !== link.curriculum_id ? 'Khóa không thuộc chương trình đã chọn.'
     : !link.confirmed ? 'Đánh dấu xác nhận sau khi đã đối chiếu thông tin.' : '';
   useEffect(() => {
     if (!selected || selected.role !== 'student') return;
@@ -189,8 +191,11 @@ export function AdminAccounts() {
         <label>Họ tên hồ sơ học vụ<input required value={link.full_name} onChange={e => setLink({...link, full_name: e.target.value})} /></label>
         <label>Chương trình<select required value={link.curriculum_id} onChange={e => setLink({...link, curriculum_id: e.target.value, cohort_id: ''})}>
           <option value="">Chọn chương trình</option>{curricula.map(item => <option key={item.id} value={item.id}>{item.major} — {item.code}/{item.version}</option>)}</select></label>
-        <label>Khóa thuộc chương trình<select required value={link.cohort_id} onChange={e => setLink({...link, cohort_id: e.target.value})}>
-          <option value="">Chọn khóa</option>{compatibleCohorts.map(item => <option key={item.id} value={item.id}>{item.code}</option>)}</select></label>
+        <label>Khóa thuộc chương trình<select required value={link.cohort_id} onChange={e => {
+          const cohort = cohorts.find(item => item.id === e.target.value);
+          setLink({...link, cohort_id: e.target.value, curriculum_id: cohort?.curriculum_id || link.curriculum_id});
+        }}>
+          <option value="">Chọn khóa</option>{cohorts.map(item => <option key={item.id} value={item.id}>{item.code}</option>)}</select></label>
         {link.curriculum_id && !compatibleCohorts.length && <p className="error">Chương trình này chưa có khóa hợp lệ trong catalog. Hãy import/tạo cohort trước khi liên kết.</p>}
         <label><input type="checkbox" checked={link.confirmed} onChange={e => setLink({...link, confirmed: e.target.checked})} required /> Tôi đã đối chiếu tài khoản, mã sinh viên, chương trình và khóa.</label>
         {linkBlockingReason && <p className="muted" role="status">Để liên kết: {linkBlockingReason}</p>}
