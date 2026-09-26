@@ -120,8 +120,10 @@ export function AdminAccounts() {
   useEffect(() => {
     if (!selected || selected.role !== 'student') return;
     const reportedCohort = (selected.self_reported_cohort || '').trim().toUpperCase();
-    const reportedCatalogCohort = cohorts.find(item => item.major === selected.self_reported_major
-      && item.code.toUpperCase() === reportedCohort);
+    // Cohort codes are globally unique in the reviewed catalog. Let the cohort
+    // row identify its owning curriculum; the self-reported major is display
+    // text and may differ in whitespace/normalisation from catalog metadata.
+    const reportedCatalogCohort = cohorts.find(item => item.code.toUpperCase() === reportedCohort);
     const preferredCurriculum = selected.curriculum_id || reportedCatalogCohort?.curriculum_id
       || curricula.find(item => item.major === selected.self_reported_major)?.id || curricula[0]?.id || '';
     const preferredCohort = selected.cohort_id || cohorts.find(item => item.curriculum_id === preferredCurriculum && item.code.toUpperCase() === reportedCohort)?.id || '';
