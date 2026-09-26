@@ -133,13 +133,20 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     await page.getByRole('button', { name: 'Xác nhận' }).click();
     await page.getByText('Thành công. Hãy đăng nhập bằng mật khẩu mới.').waitFor();
     const newUser = await login(username, password, 'Nhìn rõ hiện tại. Đi xa hơn.');
-    await page.getByRole('heading', { name: 'Bắt đầu với bảng điểm cá nhân' }).waitFor();
-    const onboarding = page.getByRole('heading', { name: 'Hồ sơ cá nhân' }).locator('..');
-    await onboarding.getByLabel('Tên hiển thị').fill('Sinh viên Stage 8');
-    await onboarding.locator('select').nth(0).selectOption('Hệ thống thông tin');
-    await onboarding.locator('select').nth(1).selectOption('K75');
-    await onboarding.getByRole('button', { name: 'Lưu hồ sơ' }).click();
-    await onboarding.getByText('Đã lưu hồ sơ cá nhân.').waitFor();
+    await page.locator('aside nav').getByRole('button', { name: 'Hồ sơ học tập' }).click();
+    await page.getByRole('heading', { name: 'Bảng điểm cá nhân tự khai báo' }).waitFor();
+    await page.getByText(/không cần liên kết hoặc phê duyệt từ quản trị viên/).waitFor();
+    await page.getByRole('button', { name: 'Thêm học kỳ' }).click();
+    await page.getByLabel('Mã kỳ').fill('S8-TERM');
+    await page.getByLabel('Bắt đầu').fill('2026-01-01');
+    await page.getByLabel('Kết thúc').fill('2026-05-31');
+    await page.getByRole('button', { name: 'Thêm lần học' }).click();
+    await page.getByLabel('Mã môn').fill('S8-C01');
+    await page.getByLabel('Tên môn').fill('Học phần tự khai Stage 8');
+    await page.getByLabel('Kết quả').selectOption('graded');
+    await page.getByLabel('Điểm /10').fill('8');
+    await page.getByRole('button', { name: 'Lưu bảng điểm cá nhân' }).click();
+    await page.getByText('Đã lưu bảng điểm.').waitFor();
     await logout();
 
     // 10. Admin recovery code issuance
@@ -148,7 +155,7 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     const newAccountRow = accountTable.locator('tbody tr').filter({ hasText: username });
     await newAccountRow.getByRole('button', { name: 'Quản lý' }).click();
     const recoveryPanel = page.getByRole('heading', { name: `Quản lý sinh viên: ${username}` }).locator('..');
-    await recoveryPanel.getByText(/Hệ thống thông tin · K75/).first().waitFor();
+    await recoveryPanel.getByText(/Phiên bản 1/).waitFor();
     const linkForm = recoveryPanel.locator('form').filter({ hasText: 'Liên kết hồ sơ học vụ pilot' });
     await linkForm.locator('input[pattern]').fill(studentCode);
     await linkForm.locator('select').nth(1).selectOption({ label: 'K75' });
@@ -175,7 +182,9 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
 
     // 12. Unlinked user UX
     await login('unlinked@demo.local', password, 'Nhìn rõ hiện tại. Đi xa hơn.');
-    await page.getByRole('heading', { name: 'Bắt đầu với bảng điểm cá nhân' }).waitFor();
+    await page.locator('aside nav').getByRole('button', { name: 'Hồ sơ học tập' }).click();
+    await page.getByRole('heading', { name: 'Bảng điểm cá nhân tự khai báo' }).waitFor();
+    await page.getByText(/không cần liên kết hoặc phê duyệt từ quản trị viên/).waitFor();
     await page.locator('aside nav').getByRole('button', { name: 'Hỏi cố vấn AI' }).click();
     await page.getByText(/Chưa có hồ sơ học tập cá nhân/).waitFor();
     await page.getByText(/Bạn vẫn có thể tra cứu tài liệu UTT phạm vi chung/).waitFor();
