@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-26 — Sửa mô phỏng điểm tự khai
+
+- Chatbot nhận đúng câu mô phỏng đầy đủ có dấu chấm cuối câu, ví dụ `mô phỏng tự khai CS1 lần 2 được 8.`.
+- Phản hồi mô phỏng hiển thị rõ môn/lần học, điểm trước–sau và GPA trước–sau.
+- Bổ sung kiểm thử hồi quy cho nhiều dấu câu, điểm thập phân và xác nhận không ghi thay đổi vào bảng điểm đã lưu.
+
 ## 2026-09-23 — Public release candidate
 
 - Hoàn thiện backend, frontend, database migrations và Docker Compose.

@@ -129,6 +129,23 @@ class PersonalAcademicDBTests(unittest.TestCase):
         self.assertEqual(data['after']['summary']['gpa_4'], '3.600000')
         self.assertEqual(self.client.get('/api/v1/account/transcript').json()['data'], before)
 
+    def test_chat_personal_whatif_accepts_sentence_punctuation_and_reports_delta(self):
+        from app.chat_service import dispatch
+        self.assertEqual(self.save().status_code, 200)
+        before = self.client.get('/api/v1/account/transcript').json()['data']
+
+        scenarios = [('8.', '3.300000'), ('8!', '3.300000'), ('8?', '3.300000'), ('8.5.', '3.600000')]
+        for score, expected_gpa in scenarios:
+            with self.subTest(score=score):
+                result = dispatch(f'mô phỏng tự khai CS1 lần 2 được {score}', self.user)
+                self.assertEqual(result['status'], 'completed')
+                self.assertEqual(result['cards'][0]['type'], 'simulation')
+                self.assertFalse(result['cards'][0]['data']['persisted'])
+                self.assertEqual(result['cards'][0]['data']['after']['summary']['gpa_4'], expected_gpa)
+                self.assertIn(f'Mô phỏng CS1 lần 2: 5/10 → {score.rstrip(".!?")}/10', result['answer'])
+                self.assertIn('GPA 2.1 →', result['answer'])
+        self.assertEqual(self.client.get('/api/v1/account/transcript').json()['data'], before)
+
     def test_chat_personal_letter_projection_and_course_lookup(self):
         from app.chat_service import dispatch
         self.assertEqual(self.save().status_code, 200)
