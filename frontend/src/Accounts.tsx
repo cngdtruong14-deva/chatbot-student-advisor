@@ -110,14 +110,14 @@ export function AdminAccounts() {
     const text = [item.username, item.email, item.display_name, item.student_code, item.full_name].filter(Boolean).join(' ').toLowerCase();
     return text.includes(query.trim().toLowerCase());
   });
-  const compatibleCohorts = cohorts.filter(item => item.curriculum_id === link.curriculum_id);
+  const compatibleCohorts = cohorts.filter(item => String(item.curriculum_id) === String(link.curriculum_id));
   const selectedCatalogCohort = cohorts.find(item => item.id === link.cohort_id);
   const linkBlockingReason = !link.student_code.trim() ? 'Nhập mã sinh viên.'
     : !link.full_name.trim() ? 'Nhập họ tên hồ sơ học vụ.'
     : !link.curriculum_id ? 'Chọn chương trình.'
-    : !compatibleCohorts.length ? 'Chương trình chưa có khóa hợp lệ trong catalog.'
     : !link.cohort_id ? 'Chọn khóa cần xác nhận.'
-    : selectedCatalogCohort?.curriculum_id !== link.curriculum_id ? 'Khóa không thuộc chương trình đã chọn.'
+    : !selectedCatalogCohort ? 'Khóa không còn tồn tại trong catalog.'
+    : String(selectedCatalogCohort.curriculum_id) !== String(link.curriculum_id) ? 'Khóa không thuộc chương trình đã chọn.'
     : !link.confirmed ? 'Đánh dấu xác nhận sau khi đã đối chiếu thông tin.' : '';
   useEffect(() => {
     if (!selected || selected.role !== 'student') return;
@@ -128,7 +128,7 @@ export function AdminAccounts() {
     const reportedCatalogCohort = cohorts.find(item => item.code.toUpperCase() === reportedCohort);
     const preferredCurriculum = selected.curriculum_id || reportedCatalogCohort?.curriculum_id
       || curricula.find(item => item.major === selected.self_reported_major)?.id || curricula[0]?.id || '';
-    const preferredCohort = selected.cohort_id || cohorts.find(item => item.curriculum_id === preferredCurriculum && item.code.toUpperCase() === reportedCohort)?.id || '';
+    const preferredCohort = selected.cohort_id || cohorts.find(item => String(item.curriculum_id) === String(preferredCurriculum) && item.code.toUpperCase() === reportedCohort)?.id || '';
     setLink({ student_code: selected.student_code || '', full_name: selected.full_name || selected.display_name || '',
       curriculum_id: preferredCurriculum, cohort_id: preferredCohort, confirmed: false });
   }, [selectedId, accounts.length, cohorts.length, curricula.length]);
