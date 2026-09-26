@@ -119,8 +119,11 @@ export function AdminAccounts() {
     : !link.confirmed ? 'Đánh dấu xác nhận sau khi đã đối chiếu thông tin.' : '';
   useEffect(() => {
     if (!selected || selected.role !== 'student') return;
-    const preferredCurriculum = selected.curriculum_id || curricula.find(item => item.major === selected.self_reported_major)?.id || curricula[0]?.id || '';
     const reportedCohort = (selected.self_reported_cohort || '').trim().toUpperCase();
+    const reportedCatalogCohort = cohorts.find(item => item.major === selected.self_reported_major
+      && item.code.toUpperCase() === reportedCohort);
+    const preferredCurriculum = selected.curriculum_id || reportedCatalogCohort?.curriculum_id
+      || curricula.find(item => item.major === selected.self_reported_major)?.id || curricula[0]?.id || '';
     const preferredCohort = selected.cohort_id || cohorts.find(item => item.curriculum_id === preferredCurriculum && item.code.toUpperCase() === reportedCohort)?.id || '';
     setLink({ student_code: selected.student_code || '', full_name: selected.full_name || selected.display_name || '',
       curriculum_id: preferredCurriculum, cohort_id: preferredCohort, confirmed: false });
