@@ -158,6 +158,7 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
     await recoveryPanel.getByText(/Phiên bản 1/).waitFor();
     const linkForm = recoveryPanel.locator('form').filter({ hasText: 'Liên kết hồ sơ học vụ pilot' });
     await linkForm.locator('input[pattern]').fill(studentCode);
+    await linkForm.getByLabel('Họ tên hồ sơ học vụ').fill('Sinh viên Stage 8');
     await linkForm.locator('select').nth(1).selectOption({ label: 'K75' });
     await linkForm.getByRole('checkbox', { name: /đối chiếu tài khoản/ }).check();
     await linkForm.getByRole('button', { name: 'Liên kết hồ sơ' }).click();
