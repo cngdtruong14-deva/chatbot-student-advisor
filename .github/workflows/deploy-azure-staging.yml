@@ -99,11 +99,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          execution="$(az containerapp job start \
+          # Keep the reviewed job command and secrets intact. Supplying --image
+          # to `job start` creates an execution override that can replace the
+          # stored Alembic command with the image default command.
+          az containerapp job update \
             --name "$MIGRATION_JOB" \
             --resource-group "$RESOURCE_GROUP" \
             --container-name alembic-migrate \
             --image "$API_IMAGE" \
+            --output none
+          execution="$(az containerapp job start \
+            --name "$MIGRATION_JOB" \
+            --resource-group "$RESOURCE_GROUP" \
             --query name -o tsv)"
           test -n "$execution"
           echo "Migration execution: $execution"
