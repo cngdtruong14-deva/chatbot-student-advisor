@@ -49,6 +49,9 @@ if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl || '') || !outputDir || password
 
     // 2. Transcript & Academics
     await page.locator('aside nav').getByRole('button', { name: 'Hồ sơ học tập' }).click();
+    await page.getByRole('heading', { name: 'Bảng điểm cá nhân tự khai báo' }).waitFor();
+    await page.getByText(/không cần liên kết hoặc phê duyệt từ quản trị viên/).waitFor();
+    await page.getByRole('button', { name: /Dữ liệu trường · đã liên kết/ }).click();
     await page.getByRole('heading', { name: 'Bảng điểm của bạn' }).waitFor();
     await page.getByText('DEMO-C01', { exact: true }).waitFor();
 
